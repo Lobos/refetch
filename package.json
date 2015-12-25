@@ -1,0 +1,62 @@
+{
+  "name": "refetch",
+  "author": "lobos841@gmail.com",
+  "version": "0.1.0",
+  "description": "remote data fetch, ajax, jsonp with cache, promises",
+  "main": "./src/index.js",
+  "scripts": {
+    "eslint": "./node_modules/.bin/eslint src/*",
+    "test": "./node_modules/.bin/gulp test"
+  },
+  "keywords": [
+    "ajax",
+    "jsonp"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lobos/refetch.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lobos/refetch/issues"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "es6": true
+        }
+      ]
+    ]
+  },
+  "jshintConfig": {
+    "strict": false,
+    "globalstrict": false,
+    "esnext": true
+  },
+  "dependencies": {
+    "blueimp-md5": "~1.1.1",
+    "pinkyswear": "~2.2.2",
+    "qwest": "2.2.6"
+  },
+  "devDependencies": {
+    "babel": "~6.3.13",
+    "babel-core": "~6.3.21",
+    "babel-loader": "~6.2.0",
+    "babel-preset-es2015": "~6.3.13",
+    "babel-preset-stage-0": "~6.3.13",
+    "body-parser": "~1.14.2",
+    "chai": "~3.4.1",
+    "express": "~4.13.3",
+    "gulp": "^3.9.0",
+    "gulp-mocha-phantomjs": "~0.10.1",
+    "gulp-watch": "~4.3.5",
+    "istanbul": "~0.4.1",
+    "jshint": "~2.8.0",
+    "mocha": "~2.3.4",
+    "mocha-phantomjs": "~4.0.1",
+    "webpack": "~1.12.9",
+    "webpack-stream": "^3.1.0"
+  }
+}
