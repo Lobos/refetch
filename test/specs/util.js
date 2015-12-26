@@ -2,11 +2,6 @@ import { toQueryString, solveUrl, generateKey } from '../../src/util';
 
 describe('queryString', () => {
 
-  it('toQueryString', () => {
-    let query = toQueryString({ a: 1, b: 2 });
-    query.should.eql('a=1&b=2');
-  });
-
   it('solveUrl', () => {
     solveUrl('test.html', { b: 2 }).should.eql('test.html?b=2');
     solveUrl('test.html?a=1', { b: 2 }).should.eql('test.html?a=1&b=2');

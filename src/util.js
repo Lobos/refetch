@@ -1,17 +1,10 @@
 'use strict';
 
 import md5 from 'blueimp-md5';
-
-export function toQueryString (obj) {
-  let parts = [];
-  Object.keys(obj).forEach(function (k) {
-    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(obj[k]));
-  });
-  return parts.join('&');
-}
+import param from 'jquery-param';
 
 export function solveUrl (url, data) {
-  let queryString = toQueryString(data);
+  let queryString = param(data);
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + queryString;
 }
 

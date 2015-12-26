@@ -5,10 +5,10 @@ import { solveUrl } from './util';
 
 let count = 0;
 
-module.exports = function (url, data, opts = {}) {
+module.exports = function (url, data, options = {}) {
   let promise = pinkySwear(function (pinky) {
-    let id = opts.name || '__cb' + (new Date().getTime().toString() + (count++)).substr(-10);
-    let timeout = typeof opts.timeout === 'number' ? opts.timeout : 60000;
+    let id = options.name || '__cb' + (new Date().getTime().toString() + (count++)).substr(-10);
+    let timeout = typeof options.timeout === 'number' ? options.timeout : 60000;
     let script;
     let timer;
 
@@ -36,7 +36,7 @@ module.exports = function (url, data, opts = {}) {
       };
 
       // add qs component
-      let callback = opts.callback || 'callback';
+      let callback = options.callback || 'callback';
       data = data || {};
       data[callback] = id;
       url = solveUrl(url, data);
@@ -65,6 +65,13 @@ module.exports = function (url, data, opts = {}) {
 
   });
 
-  promise.send();
+  if (options.delay > 0) {
+    setTimeout(function () {
+      promise.send();
+    }, options.delay);
+  } else {
+    promise.send();
+  }
+
   return promise;
 };

@@ -16,11 +16,11 @@ url: 必填
 data: Object
 
 options:
-- dataType: type为ajax有效，可选值 post (default), json, text, arraybuffer, blob, document, formdata
-- responseType: type为ajax有效，可选值 json (default), text, xml, arraybuffer, blob, document
-- headers: Object
+- dataType: method 为jsonp时无效。可选值 post (default), json, text, arraybuffer, blob, document, formdata
+- responseType: method 为jsonp时无效。可选值 json (default), text, xml, arraybuffer, blob, document
+- headers: method 为jsonp时无效。object
 - timeout: 毫秒
-- cache: 缓存，使用localStorage
-- withCredentials: 是否支持跨域 default false
-- async: 是否同步 default true
-- delay: 延迟处理
+- cache: 缓存，单位秒，大于0时有效。使用localStorage
+- withCredentials: method 为jsonp时无效。是否支持跨域 default false
+- async: method 为jsonp时无效。是否同步 default true
+- delay: 延时处理，单位毫秒，默认为0。

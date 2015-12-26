@@ -1,10 +1,11 @@
 {
   "name": "refetch",
   "author": "lobos841@gmail.com",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "remote data fetch, ajax, jsonp with cache, promises",
   "main": "./src/index.js",
   "scripts": {
+    "build": "./node_modules/.bin/webpack --config webpack.config.prod.js",
     "eslint": "./node_modules/.bin/eslint src/*",
     "test": "./node_modules/.bin/gulp test"
   },
@@ -37,8 +38,8 @@
   },
   "dependencies": {
     "blueimp-md5": "~1.1.1",
-    "pinkyswear": "~2.2.2",
-    "qwest": "2.2.6"
+    "jquery-param": "^0.2.0",
+    "pinkyswear": "~2.2.2"
   },
   "devDependencies": {
     "babel": "~6.3.13",

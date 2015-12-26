@@ -5,9 +5,10 @@ import jsonp from './jsonp';
 import { generateKey } from './util';
 import { getCache, setCache } from './cache';
 
-function fetch(method, url, data, opts={}) {
+function fetch(method, url, data, options) {
+  options = options || {};
   let key = generateKey(method, url, data);
-  let { cache, delay, options } = opts;
+  let cache = options.cache;
   let promise;
   if (cache > 0) {
     promise = getCache(key);

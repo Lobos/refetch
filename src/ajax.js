@@ -1,9 +1,10 @@
 'use strict';
 
-import qwest from 'qwest';
+import qwest from './qwest';
 
-module.exports = function ajax (mothed, url, data, options={}) {
+module.exports = function ajax (mothed, url, data, options) {
   let parseJson = false;
+  options = options || {};
   if (options.responseType === 'json') {
     parseJson = true;
     options.responseType = 'text';

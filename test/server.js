@@ -45,6 +45,12 @@ app.get('/jsonp', (req, res) => {
   res.send(`${method}({"success": true})`);
 });
 
+app.get('/jsonp-delay', (req, res) => {
+  let method = req.query.callback;
+  let time = new Date().getTime();
+  res.send(`${method}({"time": ${time}})`);
+});
+
 app.get('/jsonp-cccbbb', (req, res) => {
   let method = req.query.cccbbb;
   res.send(`${method}({"success": true})`);
