@@ -1,5 +1,5 @@
 # refetch
-服务端数据获取，支持ajax和jsonp，使用promise A＋规范，支持cache。ajax使用了[qwest]https://github.com/pyrsmk/qwest
+服务端数据获取，支持ajax和jsonp，使用promise A＋规范，支持cache。ajax使用了[qwest](https://github.com/pyrsmk/qwest)
 
 # Install
 npm install refetch
@@ -20,7 +20,7 @@ options:
 - responseType: method 为jsonp时无效。可选值 json (default), text, xml, arraybuffer, blob, document
 - headers: method 为jsonp时无效。object
 - timeout: 毫秒
-- cache: 缓存，单位秒，大于0时有效。使用localStorage
+- cache: 缓存，单位秒，大于0时有效。使用localStorage做长期缓存，需要注意缓存数据大小。
 - withCredentials: method 为jsonp时无效。是否支持跨域 default false
 - async: method 为jsonp时无效。是否同步 default true
 - delay: 延时处理，单位毫秒，默认为0。

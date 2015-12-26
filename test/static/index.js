@@ -54,10 +54,10 @@
 	'use strict';
 
 	__webpack_require__(2);
-	__webpack_require__(7);
-	__webpack_require__(13);
+	__webpack_require__(10);
 	__webpack_require__(14);
-	__webpack_require__(16);
+	__webpack_require__(15);
+	__webpack_require__(17);
 
 /***/ },
 /* 2 */
@@ -152,10 +152,9 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	module.exports = function ajax(mothed, url, data) {
-	  var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
-
+	module.exports = function ajax(mothed, url, data, options) {
 	  var parseJson = false;
+	  options = options || {};
 	  if (options.responseType === 'json') {
 	    parseJson = true;
 	    options.responseType = 'text';
@@ -173,903 +172,401 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var require;var require;var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(setImmediate, process) {"use strict";
+	'use strict';
 
-	function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
+	/*! qwest 2.2.6 (https://github.com/pyrsmk/qwest) */
+	// add delay option
 
-	(function (f) {
-		if (( false ? "undefined" : _typeof(exports)) === "object" && typeof module !== "undefined") {
-			module.exports = f();
-		} else if (true) {
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (f), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-		} else {
-			var g;if (typeof window !== "undefined") {
-				g = window;
-			} else if (typeof global !== "undefined") {
-				g = global;
-			} else if (typeof self !== "undefined") {
-				g = self;
-			} else {
-				g = this;
-			}g.qwest = f();
-		}
-	})(function () {
-		var define, module, exports;return (function e(t, n, r) {
-			function s(o, u) {
-				if (!n[o]) {
-					if (!t[o]) {
-						var a = typeof require == "function" && require;if (!u && a) return require(o, !0);if (i) return i(o, !0);var f = new Error("Cannot find module '" + o + "'");throw f.code = "MODULE_NOT_FOUND", f;
-					}var l = n[o] = { exports: {} };t[o][0].call(l.exports, function (e) {
-						var n = t[o][1][e];return s(n ? n : e);
-					}, l, l.exports, e, t, n, r);
-				}return n[o].exports;
-			}var i = typeof require == "function" && require;for (var o = 0; o < r.length; o++) {
-				s(r[o]);
-			}return s;
-		})({ 1: [function (_dereq_, module, exports) {
-				/**
-	    * @preserve jquery-param (c) 2015 KNOWLEDGECODE | MIT
-	    */
-				/*global define */
-				(function (global) {
-					'use strict';
+	module.exports = (function () {
 
-					var param = function param(a) {
-						var add = function add(s, k, v) {
-							v = typeof v === 'function' ? v() : v === null ? '' : v === undefined ? '' : v;
-							s[s.length] = encodeURIComponent(k) + '=' + encodeURIComponent(v);
-						},
-						    buildParams = function buildParams(prefix, obj, s) {
-							var i, len, key;
+		var global = window || this,
+		    pinkyswear = __webpack_require__(5),
+		    jparam = __webpack_require__(9),
+		   
+		// Default response type for XDR in auto mode
+		defaultXdrResponseType = 'json',
+		   
+		// Default data type
+		defaultDataType = 'post',
+		   
+		// Variables for limit mechanism
+		_limit = null,
+		    requests = 0,
+		    request_stack = [],
+		   
+		// Get XMLHttpRequest object
+		getXHR = function getXHR() {
+			return global.XMLHttpRequest ? new global.XMLHttpRequest() : new global.ActiveXObject('Microsoft.XMLHTTP');
+		},
+		   
+		// Guess XHR version
+		xhr2 = getXHR().responseType === '',
+		   
 
-							if (Object.prototype.toString.call(obj) === '[object Array]') {
-								for (i = 0, len = obj.length; i < len; i++) {
-									buildParams(prefix + '[' + (_typeof(obj[i]) === 'object' ? i : '') + ']', obj[i], s);
-								}
-							} else if (obj && obj.toString() === '[object Object]') {
-								for (key in obj) {
-									if (obj.hasOwnProperty(key)) {
-										if (prefix) {
-											buildParams(prefix + '[' + key + ']', obj[key], s, add);
-										} else {
-											buildParams(key, obj[key], s, add);
-										}
-									}
-								}
-							} else if (prefix) {
-								add(s, prefix, obj);
-							} else {
-								for (key in obj) {
-									add(s, key, obj[key]);
-								}
+		// Core function
+		qwest = function qwest(method, url, data, options, before) {
+
+			// Format
+			method = method.toUpperCase();
+			data = data || null;
+			options = options || {};
+
+			// Define variables
+			var nativeResponseParsing = false,
+			    crossOrigin,
+			    xhr,
+			    xdr = false,
+			   
+			//timeoutInterval,
+			//aborted = false,
+			attempts = 0,
+			    headers = {},
+			    mimeTypes = {
+				text: '*/*',
+				xml: 'text/xml',
+				json: 'application/json',
+				post: 'application/x-www-form-urlencoded'
+			},
+			    accept = {
+				text: '*/*',
+				xml: 'application/xml; q=1.0, text/xml; q=0.8, */*; q=0.1',
+				json: 'application/json; q=1.0, text/*; q=0.8, */*; q=0.1'
+			},
+			    vars = '',
+			   
+			//serialized,
+			response,
+			    sending = false,
+			   
+			//delayed = false,
+			timeout_start,
+			   
+
+			// Create the promise
+			promise = pinkyswear(function (pinky) {
+				pinky['catch'] = function (f) {
+					return pinky.then(null, f);
+				};
+				pinky.complete = function (f) {
+					return pinky.then(f, f);
+				};
+				// Override
+				if ('pinkyswear' in options) {
+					for (var i in options.pinkyswear) {
+						pinky[i] = options.pinkyswear[i];
+					}
+				}
+				pinky.send = function () {
+					// Prevent further send() calls
+					if (sending) {
+						return;
+					}
+					// Reached request limit, get out!
+					if (requests == _limit) {
+						request_stack.push(pinky);
+						return;
+					}
+					++requests;
+					sending = true;
+					// Start the chrono
+					timeout_start = new Date().getTime();
+					// Get XHR object
+					xhr = getXHR();
+					if (crossOrigin) {
+						if (!('withCredentials' in xhr) && global.XDomainRequest) {
+							xhr = new XDomainRequest(); // CORS with IE8/9
+							xdr = true;
+							if (method != 'GET' && method != 'POST') {
+								method = 'POST';
 							}
-							return s;
-						};
-						return buildParams('', a, []).join('&').replace(/%20/g, '+');
-					};
-
-					if ((typeof module === "undefined" ? "undefined" : _typeof(module)) === 'object' && _typeof(module.exports) === 'object') {
-						module.exports = param;
-					} else if (typeof define === 'function' && define.amd) {
-						define([], function () {
-							return param;
-						});
+						}
+					}
+					// Open connection
+					if (xdr) {
+						xhr.open(method, url);
 					} else {
-						global.param = param;
-					}
-				})(this);
-			}, {}], 2: [function (_dereq_, module, exports) {
-				/*
-	    * PinkySwear.js 2.2.2 - Minimalistic implementation of the Promises/A+ spec
-	    * 
-	    * Public Domain. Use, modify and distribute it any way you like. No attribution required.
-	    *
-	    * NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
-	    *
-	    * PinkySwear is a very small implementation of the Promises/A+ specification. After compilation with the
-	    * Google Closure Compiler and gzipping it weighs less than 500 bytes. It is based on the implementation for 
-	    * Minified.js and should be perfect for embedding. 
-	    *
-	    *
-	    * PinkySwear has just three functions.
-	    *
-	    * To create a new promise in pending state, call pinkySwear():
-	    *         var promise = pinkySwear();
-	    *
-	    * The returned object has a Promises/A+ compatible then() implementation:
-	    *          promise.then(function(value) { alert("Success!"); }, function(value) { alert("Failure!"); });
-	    *
-	    *
-	    * The promise returned by pinkySwear() is a function. To fulfill the promise, call the function with true as first argument and
-	    * an optional array of values to pass to the then() handler. By putting more than one value in the array, you can pass more than one
-	    * value to the then() handlers. Here an example to fulfill a promsise, this time with only one argument: 
-	    *         promise(true, [42]);
-	    *
-	    * When the promise has been rejected, call it with false. Again, there may be more than one argument for the then() handler:
-	    *         promise(true, [6, 6, 6]);
-	    *         
-	    * You can obtain the promise's current state by calling the function without arguments. It will be true if fulfilled,
-	    * false if rejected, and otherwise undefined.
-	    * 		   var state = promise(); 
-	    * 
-	    * https://github.com/timjansen/PinkySwear.js
-	    */
-				(function (target) {
-					var undef;
-
-					function isFunction(f) {
-						return typeof f == 'function';
-					}
-					function isObject(f) {
-						return (typeof f === "undefined" ? "undefined" : _typeof(f)) == 'object';
-					}
-					function defer(callback) {
-						if (typeof setImmediate != 'undefined') setImmediate(callback);else if (typeof process != 'undefined' && process['nextTick']) process['nextTick'](callback);else setTimeout(callback, 0);
-					}
-
-					target[0][target[1]] = function pinkySwear(extend) {
-						var state; // undefined/null = pending, true = fulfilled, false = rejected
-						var values = []; // an array of values as arguments for the then() handlers
-						var deferred = []; // functions to call when set() is invoked
-
-						var set = function set(newState, newValues) {
-							if (state == null && newState != null) {
-								state = newState;
-								values = newValues;
-								if (deferred.length) defer(function () {
-									for (var i = 0; i < deferred.length; i++) {
-										deferred[i]();
-									}
-								});
-							}
-							return state;
-						};
-
-						set['then'] = function (onFulfilled, onRejected) {
-							var promise2 = pinkySwear(extend);
-							var callCallbacks = function callCallbacks() {
-								try {
-									var f = state ? onFulfilled : onRejected;
-									if (isFunction(f)) {
-										(function () {
-											var resolve = function resolve(x) {
-												var then,
-												    cbCalled = 0;
-												try {
-													if (x && (isObject(x) || isFunction(x)) && isFunction(then = x['then'])) {
-														if (x === promise2) throw new TypeError();
-														then['call'](x, function () {
-															if (! cbCalled++) resolve.apply(undef, arguments);
-														}, function (value) {
-															if (! cbCalled++) promise2(false, [value]);
-														});
-													} else promise2(true, arguments);
-												} catch (e) {
-													if (! cbCalled++) promise2(false, [e]);
-												}
-											};
-
-											resolve(f.apply(undef, values || []));
-										})();
-									} else promise2(state, values);
-								} catch (e) {
-									promise2(false, [e]);
-								}
-							};
-							if (state != null) defer(callCallbacks);else deferred.push(callCallbacks);
-							return promise2;
-						};
-						if (extend) {
-							set = extend(set);
+						xhr.open(method, url, options.async, options.user, options.password);
+						if (xhr2 && options.async) {
+							xhr.withCredentials = options.withCredentials;
 						}
-						return set;
-					};
-				})(typeof module == 'undefined' ? [window, 'pinkySwear'] : [module, 'exports']);
-			}, {}], "qwest": [function (_dereq_, module, exports) {
-				/*! qwest 2.2.6 (https://github.com/pyrsmk/qwest) */
-
-				module.exports = (function () {
-
-					var global = window || this,
-					    pinkyswear = _dereq_('pinkyswear'),
-					    jparam = _dereq_('jquery-param'),
-					   
-					// Default response type for XDR in auto mode
-					defaultXdrResponseType = 'json',
-					   
-					// Default data type
-					defaultDataType = 'post',
-					   
-					// Variables for limit mechanism
-					_limit = null,
-					    requests = 0,
-					    request_stack = [],
-					   
-					// Get XMLHttpRequest object
-					getXHR = function getXHR() {
-						return global.XMLHttpRequest ? new global.XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
-					},
-					   
-					// Guess XHR version
-					xhr2 = getXHR().responseType === '',
-					   
-
-					// Core function
-					qwest = function qwest(method, url, data, options, before) {
-
-						// Format
-						method = method.toUpperCase();
-						data = data || null;
-						options = options || {};
-
-						// Define variables
-						var nativeResponseParsing = false,
-						    crossOrigin,
-						    xhr,
-						    xdr = false,
-						    timeoutInterval,
-						    aborted = false,
-						    attempts = 0,
-						    headers = {},
-						    mimeTypes = {
-							text: '*/*',
-							xml: 'text/xml',
-							json: 'application/json',
-							post: 'application/x-www-form-urlencoded'
-						},
-						    accept = {
-							text: '*/*',
-							xml: 'application/xml; q=1.0, text/xml; q=0.8, */*; q=0.1',
-							json: 'application/json; q=1.0, text/*; q=0.8, */*; q=0.1'
-						},
-						    vars = '',
-						    i,
-						    j,
-						    serialized,
-						    response,
-						    sending = false,
-						    delayed = false,
-						    timeout_start,
-						   
-
-						// Create the promise
-						promise = pinkyswear(function (pinky) {
-							pinky['catch'] = function (f) {
-								return pinky.then(null, f);
-							};
-							pinky.complete = function (f) {
-								return pinky.then(f, f);
-							};
-							// Override
-							if ('pinkyswear' in options) {
-								for (i in options.pinkyswear) {
-									pinky[i] = options.pinkyswear[i];
-								}
+					}
+					// Set headers
+					if (!xdr) {
+						for (var i in headers) {
+							if (headers[i]) {
+								xhr.setRequestHeader(i, headers[i]);
 							}
-							pinky.send = function () {
-								// Prevent further send() calls
-								if (sending) {
-									return;
-								}
-								// Reached request limit, get out!
-								if (requests == _limit) {
-									request_stack.push(pinky);
-									return;
-								}
-								++requests;
-								sending = true;
-								// Start the chrono
-								timeout_start = new Date().getTime();
-								// Get XHR object
-								xhr = getXHR();
-								if (crossOrigin) {
-									if (!('withCredentials' in xhr) && global.XDomainRequest) {
-										xhr = new XDomainRequest(); // CORS with IE8/9
-										xdr = true;
-										if (method != 'GET' && method != 'POST') {
-											method = 'POST';
-										}
-									}
-								}
-								// Open connection
-								if (xdr) {
-									xhr.open(method, url);
-								} else {
-									xhr.open(method, url, options.async, options.user, options.password);
-									if (xhr2 && options.async) {
-										xhr.withCredentials = options.withCredentials;
-									}
-								}
-								// Set headers
-								if (!xdr) {
-									for (var i in headers) {
-										if (headers[i]) {
-											xhr.setRequestHeader(i, headers[i]);
-										}
-									}
-								}
-								// Verify if the response type is supported by the current browser
-								if (xhr2 && options.responseType != 'document' && options.responseType != 'auto') {
-									// Don't verify for 'document' since we're using an internal routine
-									try {
-										xhr.responseType = options.responseType;
-										nativeResponseParsing = xhr.responseType == options.responseType;
-									} catch (e) {}
-								}
-								// Plug response handler
-								if (xhr2 || xdr) {
-									xhr.onload = handleResponse;
-									xhr.onerror = handleError;
-								} else {
-									xhr.onreadystatechange = function () {
-										if (xhr.readyState == 4) {
-											handleResponse();
-										}
-									};
-								}
-								// Override mime type to ensure the response is well parsed
-								if (options.responseType != 'auto' && 'overrideMimeType' in xhr) {
-									xhr.overrideMimeType(mimeTypes[options.responseType]);
-								}
-								// Run 'before' callback
-								if (before) {
-									before(xhr);
-								}
-								// Send request
-								if (xdr) {
-									// http://cypressnorth.com/programming/internet-explorer-aborting-ajax-requests-fixed/
-									xhr.onprogress = function () {};
-									xhr.ontimeout = function () {};
-									xhr.onerror = function () {};
-									// https://developer.mozilla.org/en-US/docs/Web/API/XDomainRequest
-									setTimeout(function () {
-										xhr.send(method != 'GET' ? data : null);
-									}, 0);
-								} else {
-									xhr.send(method != 'GET' ? data : null);
-								}
-							};
-							return pinky;
-						}),
-						   
-
-						// Handle the response
-						handleResponse = function handleResponse() {
-							// Prepare
-							var i, responseType;
-							--requests;
-							sending = false;
-							// Verify timeout state
-							// --- https://stackoverflow.com/questions/7287706/ie-9-javascript-error-c00c023f
-							if (new Date().getTime() - timeout_start >= options.timeout) {
-								if (!options.attempts || ++attempts != options.attempts) {
-									promise.send();
-								} else {
-									promise(false, [xhr, response, new Error('Timeout (' + url + ')')]);
-								}
-								return;
-							}
-							// Launch next stacked request
-							if (request_stack.length) {
-								request_stack.shift().send();
-							}
-							// Handle response
-							try {
-								// Process response
-								if (nativeResponseParsing && 'response' in xhr && xhr.response !== null) {
-									response = xhr.response;
-								} else if (options.responseType == 'document') {
-									var frame = document.createElement('iframe');
-									frame.style.display = 'none';
-									document.body.appendChild(frame);
-									frame.contentDocument.open();
-									frame.contentDocument.write(xhr.response);
-									frame.contentDocument.close();
-									response = frame.contentDocument;
-									document.body.removeChild(frame);
-								} else {
-									// Guess response type
-									responseType = options.responseType;
-									if (responseType == 'auto') {
-										if (xdr) {
-											responseType = defaultXdrResponseType;
-										} else {
-											var ct = xhr.getResponseHeader('Content-Type') || '';
-											if (ct.indexOf(mimeTypes.json) > -1) {
-												responseType = 'json';
-											} else if (ct.indexOf(mimeTypes.xml) > -1) {
-												responseType = 'xml';
-											} else {
-												responseType = 'text';
-											}
-										}
-									}
-									// Handle response type
-									switch (responseType) {
-										case 'json':
-											try {
-												if ('JSON' in global) {
-													response = JSON.parse(xhr.responseText);
-												} else {
-													response = eval('(' + xhr.responseText + ')');
-												}
-											} catch (e) {
-												throw "Error while parsing JSON body : " + e;
-											}
-											break;
-										case 'xml':
-											// Based on jQuery's parseXML() function
-											try {
-												// Standard
-												if (global.DOMParser) {
-													response = new DOMParser().parseFromString(xhr.responseText, 'text/xml');
-												}
-												// IE<9
-												else {
-														response = new ActiveXObject('Microsoft.XMLDOM');
-														response.async = 'false';
-														response.loadXML(xhr.responseText);
-													}
-											} catch (e) {
-												response = undefined;
-											}
-											if (!response || !response.documentElement || response.getElementsByTagName('parsererror').length) {
-												throw 'Invalid XML';
-											}
-											break;
-										default:
-											response = xhr.responseText;
-									}
-								}
-								// Late status code verification to allow passing data when, per example, a 409 is returned
-								// --- https://stackoverflow.com/questions/10046972/msie-returns-status-code-of-1223-for-ajax-request
-								if ('status' in xhr && !/^2|1223/.test(xhr.status)) {
-									throw xhr.status + ' (' + xhr.statusText + ')';
-								}
-								// Fulfilled
-								promise(true, [xhr, response]);
-							} catch (e) {
-								// Rejected
-								promise(false, [xhr, response, e]);
-							}
-						},
-						   
-
-						// Handle errors
-						handleError = function handleError(e) {
-							--requests;
-							promise(false, [xhr, null, new Error('Connection aborted')]);
-						};
-
-						// Normalize options
-						options.async = 'async' in options ? !!options.async : true;
-						options.cache = 'cache' in options ? !!options.cache : false;
-						options.dataType = 'dataType' in options ? options.dataType.toLowerCase() : defaultDataType;
-						options.responseType = 'responseType' in options ? options.responseType.toLowerCase() : 'auto';
-						options.user = options.user || '';
-						options.password = options.password || '';
-						options.withCredentials = !!options.withCredentials;
-						options.timeout = 'timeout' in options ? parseInt(options.timeout, 10) : 30000;
-						options.attempts = 'attempts' in options ? parseInt(options.attempts, 10) : 1;
-
-						// Guess if we're dealing with a cross-origin request
-						i = url.match(/\/\/(.+?)\//);
-						crossOrigin = i && (i[1] ? i[1] != location.host : false);
-
-						// Prepare data
-						if ('ArrayBuffer' in global && data instanceof ArrayBuffer) {
-							options.dataType = 'arraybuffer';
-						} else if ('Blob' in global && data instanceof Blob) {
-							options.dataType = 'blob';
-						} else if ('Document' in global && data instanceof Document) {
-							options.dataType = 'document';
-						} else if ('FormData' in global && data instanceof FormData) {
-							options.dataType = 'formdata';
 						}
-						switch (options.dataType) {
+					}
+					// Verify if the response type is supported by the current browser
+					if (xhr2 && options.responseType != 'document' && options.responseType != 'auto') {
+						// Don't verify for 'document' since we're using an internal routine
+						try {
+							xhr.responseType = options.responseType;
+							nativeResponseParsing = xhr.responseType == options.responseType;
+						} catch (e) {}
+					}
+					// Plug response handler
+					if (xhr2 || xdr) {
+						xhr.onload = handleResponse;
+						xhr.onerror = handleError;
+					} else {
+						xhr.onreadystatechange = function () {
+							if (xhr.readyState == 4) {
+								handleResponse();
+							}
+						};
+					}
+					// Override mime type to ensure the response is well parsed
+					if (options.responseType != 'auto' && 'overrideMimeType' in xhr) {
+						xhr.overrideMimeType(mimeTypes[options.responseType]);
+					}
+					// Run 'before' callback
+					if (before) {
+						before(xhr);
+					}
+					// Send request
+					if (xdr) {
+						// http://cypressnorth.com/programming/internet-explorer-aborting-ajax-requests-fixed/
+						xhr.onprogress = function () {};
+						xhr.ontimeout = function () {};
+						xhr.onerror = function () {};
+						// https://developer.mozilla.org/en-US/docs/Web/API/XDomainRequest
+						setTimeout(function () {
+							xhr.send(method != 'GET' ? data : null);
+						}, 0);
+					} else {
+						xhr.send(method != 'GET' ? data : null);
+					}
+				};
+				return pinky;
+			}),
+			   
+
+			// Handle the response
+			handleResponse = function handleResponse() {
+				// Prepare
+				var responseType;
+				--requests;
+				sending = false;
+				// Verify timeout state
+				// --- https://stackoverflow.com/questions/7287706/ie-9-javascript-error-c00c023f
+				if (new Date().getTime() - timeout_start >= options.timeout) {
+					if (!options.attempts || ++attempts != options.attempts) {
+						promise.send();
+					} else {
+						promise(false, [xhr, response, new Error('Timeout (' + url + ')')]);
+					}
+					return;
+				}
+				// Launch next stacked request
+				if (request_stack.length) {
+					request_stack.shift().send();
+				}
+				// Handle response
+				try {
+					// Process response
+					if (nativeResponseParsing && 'response' in xhr && xhr.response !== null) {
+						response = xhr.response;
+					} else if (options.responseType == 'document') {
+						var frame = document.createElement('iframe');
+						frame.style.display = 'none';
+						document.body.appendChild(frame);
+						frame.contentDocument.open();
+						frame.contentDocument.write(xhr.response);
+						frame.contentDocument.close();
+						response = frame.contentDocument;
+						document.body.removeChild(frame);
+					} else {
+						// Guess response type
+						responseType = options.responseType;
+						if (responseType == 'auto') {
+							if (xdr) {
+								responseType = defaultXdrResponseType;
+							} else {
+								var ct = xhr.getResponseHeader('Content-Type') || '';
+								if (ct.indexOf(mimeTypes.json) > -1) {
+									responseType = 'json';
+								} else if (ct.indexOf(mimeTypes.xml) > -1) {
+									responseType = 'xml';
+								} else {
+									responseType = 'text';
+								}
+							}
+						}
+						// Handle response type
+						switch (responseType) {
 							case 'json':
-								data = JSON.stringify(data);
-								break;
-							case 'post':
-								data = jparam(data);
-						}
-
-						// Prepare headers
-						if (options.headers) {
-							var format = function format(match, p1, p2) {
-								return p1 + p2.toUpperCase();
-							};
-							for (i in options.headers) {
-								headers[i.replace(/(^|-)([^-])/g, format)] = options.headers[i];
-							}
-						}
-						if (!('Content-Type' in headers) && method != 'GET') {
-							if (options.dataType in mimeTypes) {
-								if (mimeTypes[options.dataType]) {
-									headers['Content-Type'] = mimeTypes[options.dataType];
+								try {
+									if ('JSON' in global) {
+										response = JSON.parse(xhr.responseText);
+									} else {
+										response = eval('(' + xhr.responseText + ')');
+									}
+								} catch (e) {
+									throw 'Error while parsing JSON body : ' + e;
 								}
-							}
+								break;
+							case 'xml':
+								// Based on jQuery's parseXML() function
+								try {
+									// Standard
+									if (global.DOMParser) {
+										response = new DOMParser().parseFromString(xhr.responseText, 'text/xml');
+									}
+									// IE<9
+									else {
+											response = new global.ActiveXObject('Microsoft.XMLDOM');
+											response.async = 'false';
+											response.loadXML(xhr.responseText);
+										}
+								} catch (e) {
+									response = undefined;
+								}
+								if (!response || !response.documentElement || response.getElementsByTagName('parsererror').length) {
+									throw 'Invalid XML';
+								}
+								break;
+							default:
+								response = xhr.responseText;
 						}
-						if (!headers.Accept) {
-							headers.Accept = options.responseType in accept ? accept[options.responseType] : '*/*';
-						}
-						if (!crossOrigin && !('X-Requested-With' in headers)) {
-							// (that header breaks in legacy browsers with CORS)
-							headers['X-Requested-With'] = 'XMLHttpRequest';
-						}
-						if (!options.cache && !('Cache-Control' in headers)) {
-							headers['Cache-Control'] = 'no-cache';
-						}
+					}
+					// Late status code verification to allow passing data when, per example, a 409 is returned
+					// --- https://stackoverflow.com/questions/10046972/msie-returns-status-code-of-1223-for-ajax-request
+					if ('status' in xhr && !/^2|1223/.test(xhr.status)) {
+						throw xhr.status + ' (' + xhr.statusText + ')';
+					}
+					// Fulfilled
+					promise(true, [xhr, response]);
+				} catch (e) {
+					// Rejected
+					promise(false, [xhr, response, e]);
+				}
+			},
+			   
 
-						// Prepare URL
-						if (method == 'GET' && data) {
-							vars += data;
-						}
-						if (vars) {
-							url += (/\?/.test(url) ? '&' : '?') + vars;
-						}
+			// Handle errors
+			handleError = function handleError() {
+				--requests;
+				promise(false, [xhr, null, new Error('Connection aborted')]);
+			};
 
-						// Start the request
-						if (options.async) {
-							promise.send();
-						}
+			// Normalize options
+			options.async = 'async' in options ? !!options.async : true;
+			options.cache = 'cache' in options ? !!options.cache : false;
+			options.dataType = 'dataType' in options ? options.dataType.toLowerCase() : defaultDataType;
+			options.responseType = 'responseType' in options ? options.responseType.toLowerCase() : 'auto';
+			options.user = options.user || '';
+			options.password = options.password || '';
+			options.withCredentials = !!options.withCredentials;
+			options.timeout = 'timeout' in options ? parseInt(options.timeout, 10) : 30000;
+			options.attempts = 'attempts' in options ? parseInt(options.attempts, 10) : 1;
 
-						// Return promise
-						return promise;
-					};
+			// Guess if we're dealing with a cross-origin request
+			i = url.match(/\/\/(.+?)\//);
+			crossOrigin = i && (i[1] ? i[1] != location.host : false);
 
-					// Return the external qwest object
-					return {
-						base: '',
-						get: function get(url, data, options, before) {
-							return qwest('GET', this.base + url, data, options, before);
-						},
-						post: function post(url, data, options, before) {
-							return qwest('POST', this.base + url, data, options, before);
-						},
-						put: function put(url, data, options, before) {
-							return qwest('PUT', this.base + url, data, options, before);
-						},
-						'delete': function _delete(url, data, options, before) {
-							return qwest('DELETE', this.base + url, data, options, before);
-						},
-						map: function map(type, url, data, options, before) {
-							return qwest(type.toUpperCase(), this.base + url, data, options, before);
-						},
-						xhr2: xhr2,
-						limit: function limit(by) {
-							_limit = by;
-						},
-						setDefaultXdrResponseType: function setDefaultXdrResponseType(type) {
-							defaultXdrResponseType = type.toLowerCase();
-						},
-						setDefaultDataType: function setDefaultDataType(type) {
-							defaultDataType = type.toLowerCase();
-						}
-					};
-				})();
-			}, { "jquery-param": 1, "pinkyswear": 2 }] }, {}, [1, 2])("qwest");
-	});
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5).setImmediate, __webpack_require__(6)))
+			// Prepare data
+			if ('ArrayBuffer' in global && data instanceof ArrayBuffer) {
+				options.dataType = 'arraybuffer';
+			} else if ('Blob' in global && data instanceof Blob) {
+				options.dataType = 'blob';
+			} else if ('Document' in global && data instanceof Document) {
+				options.dataType = 'document';
+			} else if ('FormData' in global && data instanceof FormData) {
+				options.dataType = 'formdata';
+			}
+			switch (options.dataType) {
+				case 'json':
+					data = JSON.stringify(data);
+					break;
+				case 'post':
+					data = jparam(data);
+			}
+
+			// Prepare headers
+			if (options.headers) {
+				var format = function format(match, p1, p2) {
+					return p1 + p2.toUpperCase();
+				};
+				for (var i in options.headers) {
+					headers[i.replace(/(^|-)([^-])/g, format)] = options.headers[i];
+				}
+			}
+			if (!('Content-Type' in headers) && method != 'GET') {
+				if (options.dataType in mimeTypes) {
+					if (mimeTypes[options.dataType]) {
+						headers['Content-Type'] = mimeTypes[options.dataType];
+					}
+				}
+			}
+			if (!headers.Accept) {
+				headers.Accept = options.responseType in accept ? accept[options.responseType] : '*/*';
+			}
+			if (!crossOrigin && !('X-Requested-With' in headers)) {
+				// (that header breaks in legacy browsers with CORS)
+				headers['X-Requested-With'] = 'XMLHttpRequest';
+			}
+			if (!options.cache && !('Cache-Control' in headers)) {
+				headers['Cache-Control'] = 'no-cache';
+			}
+
+			// Prepare URL
+			if (method == 'GET' && data) {
+				vars += data;
+			}
+			if (vars) {
+				url += (/\?/.test(url) ? '&' : '?') + vars;
+			}
+
+			// Start the request
+			if (options.async) {
+				if (options.delay > 0) {
+					setTimeout(function () {
+						promise.send();
+					}, options.delay);
+				} else {
+					promise.send();
+				}
+			}
+
+			// Return promise
+			return promise;
+		};
+
+		// Return the external qwest object
+		return {
+			base: '',
+			get: function get(url, data, options, before) {
+				return qwest('GET', this.base + url, data, options, before);
+			},
+			post: function post(url, data, options, before) {
+				return qwest('POST', this.base + url, data, options, before);
+			},
+			put: function put(url, data, options, before) {
+				return qwest('PUT', this.base + url, data, options, before);
+			},
+			'delete': function _delete(url, data, options, before) {
+				return qwest('DELETE', this.base + url, data, options, before);
+			},
+			map: function map(type, url, data, options, before) {
+				return qwest(type.toUpperCase(), this.base + url, data, options, before);
+			},
+			xhr2: xhr2,
+			limit: function limit(by) {
+				_limit = by;
+			},
+			setDefaultXdrResponseType: function setDefaultXdrResponseType(type) {
+				defaultXdrResponseType = type.toLowerCase();
+			},
+			setDefaultDataType: function setDefaultDataType(type) {
+				defaultDataType = type.toLowerCase();
+			}
+		};
+	})();
 
 /***/ },
 /* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {"use strict";
-
-	var nextTick = __webpack_require__(6).nextTick;
-	var apply = Function.prototype.apply;
-	var slice = Array.prototype.slice;
-	var immediateIds = {};
-	var nextImmediateId = 0;
-
-	// DOM APIs, for completeness
-
-	exports.setTimeout = function () {
-	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
-	};
-	exports.setInterval = function () {
-	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
-	};
-	exports.clearTimeout = exports.clearInterval = function (timeout) {
-	  timeout.close();
-	};
-
-	function Timeout(id, clearFn) {
-	  this._id = id;
-	  this._clearFn = clearFn;
-	}
-	Timeout.prototype.unref = Timeout.prototype.ref = function () {};
-	Timeout.prototype.close = function () {
-	  this._clearFn.call(window, this._id);
-	};
-
-	// Does not start the time, just sets up the members needed.
-	exports.enroll = function (item, msecs) {
-	  clearTimeout(item._idleTimeoutId);
-	  item._idleTimeout = msecs;
-	};
-
-	exports.unenroll = function (item) {
-	  clearTimeout(item._idleTimeoutId);
-	  item._idleTimeout = -1;
-	};
-
-	exports._unrefActive = exports.active = function (item) {
-	  clearTimeout(item._idleTimeoutId);
-
-	  var msecs = item._idleTimeout;
-	  if (msecs >= 0) {
-	    item._idleTimeoutId = setTimeout(function onTimeout() {
-	      if (item._onTimeout) item._onTimeout();
-	    }, msecs);
-	  }
-	};
-
-	// That's not how node.js implements it but the exposed api is the same.
-	exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function (fn) {
-	  var id = nextImmediateId++;
-	  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
-
-	  immediateIds[id] = true;
-
-	  nextTick(function onNextTick() {
-	    if (immediateIds[id]) {
-	      // fn.call() is faster so we optimize for the common use-case
-	      // @see http://jsperf.com/call-apply-segu
-	      if (args) {
-	        fn.apply(null, args);
-	      } else {
-	        fn.call(null);
-	      }
-	      // Prevent ids from leaking
-	      exports.clearImmediate(id);
-	    }
-	  });
-
-	  return id;
-	};
-
-	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function (id) {
-	  delete immediateIds[id];
-	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5).setImmediate, __webpack_require__(5).clearImmediate))
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	// shim for using process in browser
-
-	var process = module.exports = {};
-	var queue = [];
-	var draining = false;
-	var currentQueue;
-	var queueIndex = -1;
-
-	function cleanUpNextTick() {
-	    draining = false;
-	    if (currentQueue.length) {
-	        queue = currentQueue.concat(queue);
-	    } else {
-	        queueIndex = -1;
-	    }
-	    if (queue.length) {
-	        drainQueue();
-	    }
-	}
-
-	function drainQueue() {
-	    if (draining) {
-	        return;
-	    }
-	    var timeout = setTimeout(cleanUpNextTick);
-	    draining = true;
-
-	    var len = queue.length;
-	    while (len) {
-	        currentQueue = queue;
-	        queue = [];
-	        while (++queueIndex < len) {
-	            if (currentQueue) {
-	                currentQueue[queueIndex].run();
-	            }
-	        }
-	        queueIndex = -1;
-	        len = queue.length;
-	    }
-	    currentQueue = null;
-	    draining = false;
-	    clearTimeout(timeout);
-	}
-
-	process.nextTick = function (fun) {
-	    var args = new Array(arguments.length - 1);
-	    if (arguments.length > 1) {
-	        for (var i = 1; i < arguments.length; i++) {
-	            args[i - 1] = arguments[i];
-	        }
-	    }
-	    queue.push(new Item(fun, args));
-	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
-	    }
-	};
-
-	// v8 likes predictible objects
-	function Item(fun, array) {
-	    this.fun = fun;
-	    this.array = array;
-	}
-	Item.prototype.run = function () {
-	    this.fun.apply(null, this.array);
-	};
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-	process.version = ''; // empty string to avoid regexp issues
-	process.versions = {};
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	process.cwd = function () {
-	    return '/';
-	};
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-	process.umask = function () {
-	    return 0;
-	};
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var jsonp = __webpack_require__(8);
-
-	describe('jsonp', function () {
-
-	  it('callback', function (done) {
-	    jsonp('/jsonp').then(function (res) {
-	      res.success.should.be.true;
-	      done();
-	    });
-	  });
-
-	  it('callback param', function (done) {
-	    jsonp('/jsonp-cccbbb', null, { callback: 'cccbbb' }).then(function (res) {
-	      res.success.should.be.true;
-	      done();
-	    });
-	  });
-
-	  it('timeout', function (done) {
-	    jsonp('/404', null, { timeout: 50 }).then(function (res) {
-	      (1 === 1).should.be.false;
-	      done();
-	    }).catch(function (err) {
-	      (err instanceof Error).should.be.true;
-	      done();
-	    });
-	  });
-
-	  it('callback with data success', function (done) {
-	    jsonp('/jsonp-data', { q: '123' }).then(function (res) {
-	      res.success.should.be.true;
-	      done();
-	    });
-	  });
-
-	  it('callback with data failure', function (done) {
-	    jsonp('/jsonp-data', { q: '1234' }).then(function (res) {
-	      res.success.should.be.false;
-	      done();
-	    });
-	  });
-	});
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _pinkyswear = __webpack_require__(9);
-
-	var _pinkyswear2 = _interopRequireDefault(_pinkyswear);
-
-	var _util = __webpack_require__(11);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var count = 0;
-
-	module.exports = function (url, data) {
-	  var opts = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
-
-	  var promise = (0, _pinkyswear2.default)(function (pinky) {
-	    var id = opts.name || '__cb' + (new Date().getTime().toString() + count++).substr(-10);
-	    var timeout = typeof opts.timeout === 'number' ? opts.timeout : 60000;
-	    var script = undefined;
-	    var timer = undefined;
-
-	    function cleanup() {
-	      if (script.parentNode) {
-	        script.parentNode.removeChild(script);
-	      }
-	      window[id] = function () {};
-	      if (timer) {
-	        clearTimeout(timer);
-	      }
-	    }
-
-	    pinky.send = function () {
-	      if (timeout) {
-	        timer = setTimeout(function () {
-	          cleanup();
-	          promise(false, [new Error('timeout')]);
-	        }, timeout);
-	      }
-
-	      window[id] = function (res) {
-	        cleanup();
-	        promise(true, [res]);
-	      };
-
-	      // add qs component
-	      var callback = opts.callback || 'callback';
-	      data = data || {};
-	      data[callback] = id;
-	      url = (0, _util.solveUrl)(url, data);
-
-	      // create script
-	      script = document.createElement('script');
-	      script.src = url;
-	      document.head.appendChild(script);
-	    };
-
-	    pinky['catch'] = function (f) {
-	      return pinky.then(null, f);
-	    };
-
-	    pinky['complete'] = function (f) {
-	      return pinky.then(f, f);
-	    };
-
-	    pinky.cancel = function () {
-	      if (window[id]) {
-	        cleanup();
-	      }
-	    };
-
-	    return pinky;
-	  });
-
-	  promise.send();
-	  return promise;
-	};
-
-/***/ },
-/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(module, setImmediate, process) {'use strict';
@@ -1182,10 +679,10 @@
 			return set;
 		};
 	})( false ? [window, 'pinkySwear'] : [module, 'exports']);
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)(module), __webpack_require__(5).setImmediate, __webpack_require__(6)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6)(module), __webpack_require__(7).setImmediate, __webpack_require__(8)))
 
 /***/ },
-/* 10 */
+/* 6 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1202,7 +699,400 @@
 	};
 
 /***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {"use strict";
+
+	var nextTick = __webpack_require__(8).nextTick;
+	var apply = Function.prototype.apply;
+	var slice = Array.prototype.slice;
+	var immediateIds = {};
+	var nextImmediateId = 0;
+
+	// DOM APIs, for completeness
+
+	exports.setTimeout = function () {
+	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+	};
+	exports.setInterval = function () {
+	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+	};
+	exports.clearTimeout = exports.clearInterval = function (timeout) {
+	  timeout.close();
+	};
+
+	function Timeout(id, clearFn) {
+	  this._id = id;
+	  this._clearFn = clearFn;
+	}
+	Timeout.prototype.unref = Timeout.prototype.ref = function () {};
+	Timeout.prototype.close = function () {
+	  this._clearFn.call(window, this._id);
+	};
+
+	// Does not start the time, just sets up the members needed.
+	exports.enroll = function (item, msecs) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = msecs;
+	};
+
+	exports.unenroll = function (item) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = -1;
+	};
+
+	exports._unrefActive = exports.active = function (item) {
+	  clearTimeout(item._idleTimeoutId);
+
+	  var msecs = item._idleTimeout;
+	  if (msecs >= 0) {
+	    item._idleTimeoutId = setTimeout(function onTimeout() {
+	      if (item._onTimeout) item._onTimeout();
+	    }, msecs);
+	  }
+	};
+
+	// That's not how node.js implements it but the exposed api is the same.
+	exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function (fn) {
+	  var id = nextImmediateId++;
+	  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
+
+	  immediateIds[id] = true;
+
+	  nextTick(function onNextTick() {
+	    if (immediateIds[id]) {
+	      // fn.call() is faster so we optimize for the common use-case
+	      // @see http://jsperf.com/call-apply-segu
+	      if (args) {
+	        fn.apply(null, args);
+	      } else {
+	        fn.call(null);
+	      }
+	      // Prevent ids from leaking
+	      exports.clearImmediate(id);
+	    }
+	  });
+
+	  return id;
+	};
+
+	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function (id) {
+	  delete immediateIds[id];
+	};
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7).setImmediate, __webpack_require__(7).clearImmediate))
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+	var queue = [];
+	var draining = false;
+	var currentQueue;
+	var queueIndex = -1;
+
+	function cleanUpNextTick() {
+	    draining = false;
+	    if (currentQueue.length) {
+	        queue = currentQueue.concat(queue);
+	    } else {
+	        queueIndex = -1;
+	    }
+	    if (queue.length) {
+	        drainQueue();
+	    }
+	}
+
+	function drainQueue() {
+	    if (draining) {
+	        return;
+	    }
+	    var timeout = setTimeout(cleanUpNextTick);
+	    draining = true;
+
+	    var len = queue.length;
+	    while (len) {
+	        currentQueue = queue;
+	        queue = [];
+	        while (++queueIndex < len) {
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
+	        }
+	        queueIndex = -1;
+	        len = queue.length;
+	    }
+	    currentQueue = null;
+	    draining = false;
+	    clearTimeout(timeout);
+	}
+
+	process.nextTick = function (fun) {
+	    var args = new Array(arguments.length - 1);
+	    if (arguments.length > 1) {
+	        for (var i = 1; i < arguments.length; i++) {
+	            args[i - 1] = arguments[i];
+	        }
+	    }
+	    queue.push(new Item(fun, args));
+	    if (queue.length === 1 && !draining) {
+	        setTimeout(drainQueue, 0);
+	    }
+	};
+
+	// v8 likes predictible objects
+	function Item(fun, array) {
+	    this.fun = fun;
+	    this.array = array;
+	}
+	Item.prototype.run = function () {
+	    this.fun.apply(null, this.array);
+	};
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+	process.version = ''; // empty string to avoid regexp issues
+	process.versions = {};
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	process.cwd = function () {
+	    return '/';
+	};
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+	process.umask = function () {
+	    return 0;
+	};
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module) {'use strict';
+
+	function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
+
+	/**
+	 * @preserve jquery-param (c) 2015 KNOWLEDGECODE | MIT
+	 */
+	(function (global) {
+	    'use strict';
+
+	    var param = function param(a) {
+	        var s = [],
+	            rbracket = /\[\]$/,
+	            isArray = function isArray(obj) {
+	            return Object.prototype.toString.call(obj) === '[object Array]';
+	        },
+	            add = function add(k, v) {
+	            v = typeof v === 'function' ? v() : v === null ? '' : v === undefined ? '' : v;
+	            s[s.length] = encodeURIComponent(k) + '=' + encodeURIComponent(v);
+	        },
+	            buildParams = function buildParams(prefix, obj) {
+	            var i, len, key;
+
+	            if (prefix) {
+	                if (isArray(obj)) {
+	                    for (i = 0, len = obj.length; i < len; i++) {
+	                        if (rbracket.test(prefix)) {
+	                            add(prefix, obj[i]);
+	                        } else {
+	                            buildParams(prefix + '[' + (_typeof(obj[i]) === 'object' ? i : '') + ']', obj[i]);
+	                        }
+	                    }
+	                } else if (obj && String(obj) === '[object Object]') {
+	                    for (key in obj) {
+	                        buildParams(prefix + '[' + key + ']', obj[key]);
+	                    }
+	                } else {
+	                    add(prefix, obj);
+	                }
+	            } else if (isArray(obj)) {
+	                for (i = 0, len = obj.length; i < len; i++) {
+	                    add(obj[i].name, obj[i].value);
+	                }
+	            } else {
+	                for (key in obj) {
+	                    buildParams(key, obj[key]);
+	                }
+	            }
+	            return s;
+	        };
+
+	        return buildParams('', a).join('&').replace(/%20/g, '+');
+	    };
+
+	    if (( false ? 'undefined' : _typeof(module)) === 'object' && _typeof(module.exports) === 'object') {
+	        module.exports = param;
+	    } else if (true) {
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () {
+	            return param;
+	        }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	    } else {
+	        global.param = param;
+	    }
+	})(undefined);
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6)(module)))
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var jsonp = __webpack_require__(11);
+
+	describe('jsonp', function () {
+
+	  it('callback', function (done) {
+	    jsonp('/jsonp').then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('callback param', function (done) {
+	    jsonp('/jsonp-cccbbb', null, { callback: 'cccbbb' }).then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('timeout', function (done) {
+	    jsonp('/404', null, { timeout: 50 }).then(function (res) {
+	      (1 === 1).should.be.false;
+	      done();
+	    }).catch(function (err) {
+	      (err instanceof Error).should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('callback with data success', function (done) {
+	    jsonp('/jsonp-data', { q: '123' }).then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('callback with data failure', function (done) {
+	    jsonp('/jsonp-data', { q: '1234' }).then(function (res) {
+	      res.success.should.be.false;
+	      done();
+	    });
+	  });
+	});
+
+/***/ },
 /* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _pinkyswear = __webpack_require__(5);
+
+	var _pinkyswear2 = _interopRequireDefault(_pinkyswear);
+
+	var _util = __webpack_require__(12);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var count = 0;
+
+	module.exports = function (url, data) {
+	  var options = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+
+	  var promise = (0, _pinkyswear2.default)(function (pinky) {
+	    var id = options.name || '__cb' + (new Date().getTime().toString() + count++).substr(-10);
+	    var timeout = typeof options.timeout === 'number' ? options.timeout : 60000;
+	    var script = undefined;
+	    var timer = undefined;
+
+	    function cleanup() {
+	      if (script.parentNode) {
+	        script.parentNode.removeChild(script);
+	      }
+	      window[id] = function () {};
+	      if (timer) {
+	        clearTimeout(timer);
+	      }
+	    }
+
+	    pinky.send = function () {
+	      if (timeout) {
+	        timer = setTimeout(function () {
+	          cleanup();
+	          promise(false, [new Error('timeout')]);
+	        }, timeout);
+	      }
+
+	      window[id] = function (res) {
+	        cleanup();
+	        promise(true, [res]);
+	      };
+
+	      // add qs component
+	      var callback = options.callback || 'callback';
+	      data = data || {};
+	      data[callback] = id;
+	      url = (0, _util.solveUrl)(url, data);
+
+	      // create script
+	      script = document.createElement('script');
+	      script.src = url;
+	      document.head.appendChild(script);
+	    };
+
+	    pinky['catch'] = function (f) {
+	      return pinky.then(null, f);
+	    };
+
+	    pinky['complete'] = function (f) {
+	      return pinky.then(f, f);
+	    };
+
+	    pinky.cancel = function () {
+	      if (window[id]) {
+	        cleanup();
+	      }
+	    };
+
+	    return pinky;
+	  });
+
+	  if (options.delay > 0) {
+	    setTimeout(function () {
+	      promise.send();
+	    }, options.delay);
+	  } else {
+	    promise.send();
+	  }
+
+	  return promise;
+	};
+
+/***/ },
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1210,26 +1100,21 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.toQueryString = toQueryString;
 	exports.solveUrl = solveUrl;
 	exports.generateKey = generateKey;
 
-	var _blueimpMd = __webpack_require__(12);
+	var _blueimpMd = __webpack_require__(13);
 
 	var _blueimpMd2 = _interopRequireDefault(_blueimpMd);
 
+	var _jqueryParam = __webpack_require__(9);
+
+	var _jqueryParam2 = _interopRequireDefault(_jqueryParam);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function toQueryString(obj) {
-	  var parts = [];
-	  Object.keys(obj).forEach(function (k) {
-	    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(obj[k]));
-	  });
-	  return parts.join('&');
-	}
-
 	function solveUrl(url, data) {
-	  var queryString = toQueryString(data);
+	  var queryString = (0, _jqueryParam2.default)(data);
 	  return url + (url.indexOf('?') >= 0 ? '&' : '?') + queryString;
 	}
 
@@ -1251,7 +1136,7 @@
 	}
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
@@ -1536,19 +1421,14 @@
 	})(undefined);
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var _util = __webpack_require__(11);
+	var _util = __webpack_require__(12);
 
 	describe('queryString', function () {
-
-	  it('toQueryString', function () {
-	    var query = (0, _util.toQueryString)({ a: 1, b: 2 });
-	    query.should.eql('a=1&b=2');
-	  });
 
 	  it('solveUrl', function () {
 	    (0, _util.solveUrl)('test.html', { b: 2 }).should.eql('test.html?b=2');
@@ -1573,12 +1453,12 @@
 	});
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var _cache = __webpack_require__(15);
+	var _cache = __webpack_require__(16);
 
 	describe('cache', function () {
 
@@ -1606,7 +1486,7 @@
 	});
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1616,7 +1496,22 @@
 	});
 	exports.getCache = getCache;
 	exports.setCache = setCache;
+	var STORAGE_KEY = '517abb684366799b';
+	var storage = window && window.localStorage ? window.localStorage : null;
+
 	var CACHE = {};
+
+	if (storage) {
+	  var item = storage.getItem(STORAGE_KEY);
+	  if (item) {
+	    try {
+	      CACHE = JSON.parse(item) || {};
+	      clean();
+	    } catch (e) {
+	      console.warn(e);
+	    }
+	  }
+	}
 
 	function getCache(key) {
 	  var data = CACHE[key];
@@ -1624,7 +1519,7 @@
 	    return null;
 	  }
 
-	  if (data.expire.getTime() < new Date().getTime()) {
+	  if (data.expire < new Date().getTime()) {
 	    setCache(key, null);
 	    return null;
 	  }
@@ -1645,18 +1540,37 @@
 	    expire *= 1000;
 	    CACHE[key] = {
 	      data: data,
-	      expire: new Date(new Date().getTime() + expire)
+	      expire: new Date().getTime() + expire
 	    };
 	  }
+	  save();
+	}
+
+	// use single item handle expire
+	function save() {
+	  if (!storage) {
+	    return;
+	  }
+	  clean();
+	  storage.setItem(STORAGE_KEY, JSON.stringify(CACHE));
+	}
+
+	function clean() {
+	  var expire = new Date().getTime();
+	  Object.keys(CACHE).forEach(function (key) {
+	    if (expire > (CACHE[key].expire || 0)) {
+	      delete CACHE[key];
+	    }
+	  });
 	}
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var _src = __webpack_require__(17);
+	var _src = __webpack_require__(18);
 
 	var _src2 = _interopRequireDefault(_src);
 
@@ -1671,7 +1585,7 @@
 	    });
 	  });
 
-	  it('get cache', function (done) {
+	  it('get cache delay', function (done) {
 	    var tm = undefined;
 	    _src2.default.get('/cache', null, { cache: 0.1, responseType: 'json' }).then(function (res) {
 	      tm = res.time;
@@ -1680,18 +1594,40 @@
 	        res.time.should.eql(tm);
 	      });
 	    }).then(function () {
-	      setTimeout(function () {
-	        _src2.default.get('/cache', null, { cache: 500 }).then(function (res) {
-	          res.time.should.not.eql(tm);
-	          done();
-	        });
-	      }, 600);
+	      _src2.default.get('/cache', null, { cache: 0, delay: 500 }).then(function (res) {
+	        (res.time - tm > 300).should.be.true;
+	        done();
+	      });
+	      _src2.default.get('/cache', null, { cache: 0, delay: 100 }).then(function (res) {
+	        res.time.should.not.eql(tm);
+	        tm = res.time;
+	      });
+	    });
+	  });
+
+	  it('jsonp cache delay', function (done) {
+	    var tm = undefined;
+	    _src2.default.jsonp('/jsonp-delay', null, { cache: 0.1 }).then(function (res) {
+	      tm = res.time;
+	    }).then(function () {
+	      _src2.default.jsonp('/jsonp-delay', null, { cache: 500 }).then(function (res) {
+	        res.time.should.eql(tm);
+	      });
+	    }).then(function () {
+	      _src2.default.jsonp('/jsonp-delay', null, { cache: 0, delay: 500 }).then(function (res) {
+	        (res.time - tm > 300).should.be.true;
+	        done();
+	      });
+	      _src2.default.jsonp('/jsonp-delay', null, { cache: 0, delay: 100 }).then(function (res) {
+	        res.time.should.not.eql(tm);
+	        tm = res.time;
+	      });
 	    });
 	  });
 	});
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1700,24 +1636,20 @@
 
 	var _ajax2 = _interopRequireDefault(_ajax);
 
-	var _jsonp = __webpack_require__(8);
+	var _jsonp = __webpack_require__(11);
 
 	var _jsonp2 = _interopRequireDefault(_jsonp);
 
-	var _util = __webpack_require__(11);
+	var _util = __webpack_require__(12);
 
-	var _cache = __webpack_require__(15);
+	var _cache = __webpack_require__(16);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function fetch(method, url, data) {
-	  var opts = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
-
+	function fetch(method, url, data, options) {
+	  options = options || {};
 	  var key = (0, _util.generateKey)(method, url, data);
-	  var cache = opts.cache;
-	  var delay = opts.delay;
-	  var options = opts.options;
-
+	  var cache = options.cache;
 	  var promise = undefined;
 	  if (cache > 0) {
 	    promise = (0, _cache.getCache)(key);
