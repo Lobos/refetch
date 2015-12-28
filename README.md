@@ -24,3 +24,19 @@ options:
 - withCredentials: method 为jsonp时无效。是否支持跨域 default false
 - async: method 为jsonp时无效。是否同步 default true
 - delay: 延时处理，单位毫秒，默认为0。
+
+# Example
+```
+refetch.get('hello.html')
+    .then(function () {response} {
+        console.log(response);
+    });
+
+refetch.post('hello.html', { name: 'world' })
+    .then(function (response) {
+        console.log(response);
+    })
+    .catch(function (response) {
+        console.log(response);
+    });
+```

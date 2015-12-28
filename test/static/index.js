@@ -1471,6 +1471,9 @@
 
 	    (0, _cache.getCache)('test').then(function (res) {
 	      res.should.eql({ a: 1 });
+	      return res;
+	    }).complete(function (res) {
+	      res.should.eql({ a: 1 });
 	      done();
 	    });
 	  });
@@ -1487,7 +1490,7 @@
 
 /***/ },
 /* 16 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
@@ -1496,6 +1499,13 @@
 	});
 	exports.getCache = getCache;
 	exports.setCache = setCache;
+
+	var _pinkyswear = __webpack_require__(5);
+
+	var _pinkyswear2 = _interopRequireDefault(_pinkyswear);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 	var STORAGE_KEY = '517abb684366799b';
 	var storage = window && window.localStorage ? window.localStorage : null;
 
@@ -1524,11 +1534,27 @@
 	    return null;
 	  }
 
-	  return {
-	    then: function then(f) {
-	      f(data.data);
-	    }
-	  };
+	  var promise = (0, _pinkyswear2.default)(function (pinky) {
+	    pinky.send = function () {
+	      promise(true, [data.data]);
+	    };
+
+	    pinky.complete = function (f) {
+	      return pinky.then(f, f);
+	    };
+
+	    pinky['catch'] = function (f) {
+	      return pinky.then(null, f);
+	    };
+
+	    pinky.cancel = function () {};
+
+	    return pinky;
+	  });
+
+	  promise.send();
+
+	  return promise;
 	}
 
 	function setCache(key, data) {

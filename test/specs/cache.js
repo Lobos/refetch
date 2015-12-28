@@ -11,6 +11,9 @@ describe('cache', () => {
 
     getCache('test').then((res) => {
       res.should.eql({ a: 1 });
+      return res;
+    }).complete((res) => {
+      res.should.eql({ a: 1 });
       done();
     });
   });

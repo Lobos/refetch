@@ -1,5 +1,7 @@
 'use strict';
 
+import pinkySwear from 'pinkyswear';
+
 const STORAGE_KEY = '517abb684366799b';
 const storage = window && window.localStorage ? window.localStorage : null;
 
@@ -28,11 +30,27 @@ export function getCache(key) {
     return null;
   }
 
-  return {
-    then: (f) => {
-      f(data.data);
-    }
-  };
+  let promise = pinkySwear((pinky) => {
+    pinky.send = () => {
+      promise(true, [data.data]);
+    };
+
+    pinky.complete = (f) => {
+      return pinky.then(f, f);
+    };
+
+    pinky['catch'] = function (f) {
+      return pinky.then(null, f);
+    };
+
+    pinky.cancel = function () {};
+
+    return pinky;
+  });
+
+  promise.send();
+
+  return promise;
 }
 
 export function setCache(key, data, expire=3600) {
