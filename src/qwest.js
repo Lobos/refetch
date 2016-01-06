@@ -174,7 +174,7 @@ module.exports = function() {
 					promise.send();
 				}
 				else {
-					promise(false, [xhr,response,new Error('Timeout ('+url+')')]);
+					promise(false, [new Error('Timeout ('+url+')')],response,xhr);
 				}
 				return;
 			}
@@ -264,18 +264,21 @@ module.exports = function() {
 					throw xhr.status+' ('+xhr.statusText+')';
 				}
 				// Fulfilled
-				promise(true, [xhr,response]);
+				promise(true, [response,xhr]);
 			}
 			catch(e) {
 				// Rejected
-				promise(false, [xhr,response,e]);
+        if (typeof e === 'string') {
+          e = new Error(e);
+        }
+				promise(false, [e,response,xhr]);
 			}
 		},
 
 		// Handle errors
 		handleError = function() {
 			--requests;
-			promise(false, [xhr,null,new Error('Connection aborted')]);
+			promise(false, [new Error('Connection aborted'),null,xhr]);
 		};
 
 		// Normalize options

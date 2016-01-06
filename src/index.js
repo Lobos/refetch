@@ -5,6 +5,8 @@ import jsonp from './jsonp';
 import { generateKey } from './util';
 import { getCache, setCache } from './cache';
 
+let peer = null;
+
 function fetch(method, url, data, options) {
   options = options || {};
   let key = generateKey(method, url, data);
@@ -22,9 +24,15 @@ function fetch(method, url, data, options) {
     promise = ajax(method, url, data, options);
   }
 
+  if (typeof peer === 'function') {
+    promise = peer(promise);
+  }
+
   if (cache > 0) {
     promise.then((res) => {
-      setCache(key, res, cache);
+      if (!(res instanceof Error)) {
+        setCache(key, res, cache);
+      }
       return res;
     });
   }
@@ -51,5 +59,10 @@ module.exports = {
 
   jsonp: (url, data, options) => {
     return fetch('jsonp', url, data, options);
+  },
+
+  setPeer: function (fn) {
+    peer = fn;
+    return this;
   }
 };

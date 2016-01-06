@@ -1,5 +1,5 @@
 # refetch
-服务端数据获取，支持ajax和jsonp，使用promise A＋规范，支持cache。ajax使用了[qwest](https://github.com/pyrsmk/qwest)
+服务端数据获取，支持ajax和jsonp，使用promise A＋规范，支持cache。ajax使用了[qwest](https://github.com/pyrsmk/qwest)(修改了qwest返回接口参数顺序)
 
 # Install
 npm install refetch
@@ -27,16 +27,41 @@ options:
 
 # Example
 ```
+// jsonp 无xhr
+
 refetch.get('hello.html')
-    .then(function () {response} {
+    .then(function () {response, xhr} {
         console.log(response);
     });
 
 refetch.post('hello.html', { name: 'world' })
-    .then(function (response) {
+    .then(function (response, xhr) {
         console.log(response);
     })
-    .catch(function (response) {
-        console.log(response);
+    .catch(function (error, response, xhr) {
+        console.log(error);
     });
+```
+
+# 默认数据处理
+提供了一个setPeer方法，用来预处理返回数据
+
+```
+const peer = (promise) => promise.then((res, xhr) => {
+    if (res.success) {
+       return res.data;
+    } else {
+        // ... 处理异常
+        // 返回 new Error，cache将会忽略这个错误数据
+        return new Error(res.msg);
+    }
+})
+// 增加默认异常处理
+.catch((err, res, xhr) => {
+    // ... 处理异常
+});
+
+fetch.setPeer(peer);
+
+fetch.get(...);
 ```

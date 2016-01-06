@@ -49,4 +49,28 @@ describe('fetch', () => {
     });
   });
 
+  it('custom peer success', (done) => {
+    fetch.setPeer(
+      (promise) => promise.then((res) => {
+        if (res.success) {
+          return true;
+        } else {
+          return new Error(res.msg);
+        }
+      })
+      .catch((res) => {
+        res.message.should.eql('timeout');
+        done();
+      })
+    );
+
+    fetch.jsonp('/jsonp-data', {q: 1234}).then(res => {
+      res.message.should.eql("expect q === '123'");
+    }).then(() => {
+      return fetch.jsonp('/jsonp-data', {q: 123});
+    }).then(res => {
+      res.should.be.true;
+      return fetch.jsonp('/404', null, {timeout: 50});
+    });
+  });
 });

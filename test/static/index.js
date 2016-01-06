@@ -70,7 +70,8 @@
 	describe('ajax', function () {
 
 	  it('get text', function (done) {
-	    ajax('get', '/').then(function (res) {
+	    ajax('get', '/').then(function (res, xhr) {
+	      xhr.responseText.should.eql('hello world');
 	      res.should.eql('hello world');
 	      done();
 	    });
@@ -84,8 +85,11 @@
 	  });
 
 	  it('bad json', function (done) {
-	    ajax('get', '/', null, { responseType: 'json' }).catch(function (err) {
-	      (err instanceof SyntaxError).should.be.true;
+	    ajax('get', '/', null, { responseType: 'json' }).then(function (res) {
+	      (1 === 1).should.be.false;
+	      done();
+	    }).catch(function (err) {
+	      (err instanceof Error).should.be.true;
 	      done();
 	    });
 	  });
@@ -153,19 +157,7 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	module.exports = function ajax(mothed, url, data, options) {
-	  var parseJson = false;
-	  options = options || {};
-	  if (options.responseType === 'json') {
-	    parseJson = true;
-	    options.responseType = 'text';
-	  }
-	  return _qwest2.default[mothed](url, data, options).then(function (xhr, res) {
-	    if (parseJson) {
-	      return JSON.parse(res);
-	    } else {
-	      return res;
-	    }
-	  });
+	  return _qwest2.default[mothed](url, data, options);
 	};
 
 /***/ },
@@ -355,7 +347,7 @@
 					if (!options.attempts || ++attempts != options.attempts) {
 						promise.send();
 					} else {
-						promise(false, [xhr, response, new Error('Timeout (' + url + ')')]);
+						promise(false, [new Error('Timeout (' + url + ')')], response, xhr);
 					}
 					return;
 				}
@@ -437,10 +429,13 @@
 						throw xhr.status + ' (' + xhr.statusText + ')';
 					}
 					// Fulfilled
-					promise(true, [xhr, response]);
+					promise(true, [response, xhr]);
 				} catch (e) {
 					// Rejected
-					promise(false, [xhr, response, e]);
+					if (typeof e === 'string') {
+						e = new Error(e);
+					}
+					promise(false, [e, response, xhr]);
 				}
 			},
 			   
@@ -448,7 +443,7 @@
 			// Handle errors
 			handleError = function handleError() {
 				--requests;
-				promise(false, [xhr, null, new Error('Connection aborted')]);
+				promise(false, [new Error('Connection aborted'), null, xhr]);
 			};
 
 			// Normalize options
@@ -1650,6 +1645,30 @@
 	      });
 	    });
 	  });
+
+	  it('custom peer success', function (done) {
+	    _src2.default.setPeer(function (promise) {
+	      return promise.then(function (res) {
+	        if (res.success) {
+	          return true;
+	        } else {
+	          return new Error(res.msg);
+	        }
+	      }).catch(function (res) {
+	        res.message.should.eql('timeout');
+	        done();
+	      });
+	    });
+
+	    _src2.default.jsonp('/jsonp-data', { q: 1234 }).then(function (res) {
+	      res.message.should.eql("expect q === '123'");
+	    }).then(function () {
+	      return _src2.default.jsonp('/jsonp-data', { q: 123 });
+	    }).then(function (res) {
+	      res.should.be.true;
+	      return _src2.default.jsonp('/404', null, { timeout: 50 });
+	    });
+	  });
 	});
 
 /***/ },
@@ -1672,6 +1691,8 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	var peer = null;
+
 	function fetch(method, url, data, options) {
 	  options = options || {};
 	  var key = (0, _util.generateKey)(method, url, data);
@@ -1689,9 +1710,15 @@
 	    promise = (0, _ajax2.default)(method, url, data, options);
 	  }
 
+	  if (typeof peer === 'function') {
+	    promise = peer(promise);
+	  }
+
 	  if (cache > 0) {
 	    promise.then(function (res) {
-	      (0, _cache.setCache)(key, res, cache);
+	      if (!(res instanceof Error)) {
+	        (0, _cache.setCache)(key, res, cache);
+	      }
 	      return res;
 	    });
 	  }
@@ -1718,6 +1745,11 @@
 
 	  jsonp: function jsonp(url, data, options) {
 	    return fetch('jsonp', url, data, options);
+	  },
+
+	  setPeer: function setPeer(fn) {
+	    peer = fn;
+	    return this;
 	  }
 	};
 

@@ -3,7 +3,8 @@ const ajax = require('../../src/ajax');
 describe('ajax', () => {
 
   it('get text', done => {
-    ajax('get', '/').then((res) => {
+    ajax('get', '/').then((res, xhr) => {
+      xhr.responseText.should.eql('hello world');
       res.should.eql('hello world');
       done();
     });
@@ -17,10 +18,15 @@ describe('ajax', () => {
   });
 
   it('bad json', done => {
-    ajax('get', '/', null, {responseType: 'json'}).catch((err) => {
-      (err instanceof SyntaxError).should.be.true;
-      done();
-    });
+    ajax('get', '/', null, {responseType: 'json'})
+      .then((res) => {
+        (1 === 1).should.be.false;
+        done();
+      })
+      .catch((err) => {
+        (err instanceof Error).should.be.true;
+        done();
+      });
   });
 
   it('complete', done => {

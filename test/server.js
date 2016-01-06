@@ -61,9 +61,11 @@ app.get('/jsonp-data', (req, res) => {
   if (req.query.q === '123') {
     res.send(`${method}({"success": true})`);
   } else {
-    res.send(`${method}({"success": false})`);
+    res.send(`${method}({"success": false, "msg": "expect q === '123'"})`);
   }
 });
+
+app.get('', () => {});
 
 app.get('/cache', (req, res) => {
   res.send({ time: new Date().getTime() });
