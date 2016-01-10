@@ -1,7 +1,7 @@
 {
   "name": "refetch",
   "author": "lobos841@gmail.com",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "remote data fetch, ajax, jsonp with cache, promises",
   "main": "./src/index.js",
   "scripts": {

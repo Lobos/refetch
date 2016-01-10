@@ -339,7 +339,7 @@ module.exports = function() {
 		if(!crossOrigin && !('X-Requested-With' in headers)) { // (that header breaks in legacy browsers with CORS)
 			headers['X-Requested-With'] = 'XMLHttpRequest';
 		}
-		if(!options.cache && !('Cache-Control' in headers)) {
+		if(!crossOrigin && !options.cache && !('Cache-Control' in headers)) {
 			headers['Cache-Control'] = 'no-cache';
 		}
 
