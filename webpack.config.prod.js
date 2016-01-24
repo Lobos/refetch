@@ -8,7 +8,8 @@ module.exports = {
   output: {
     path: path.join(__dirname, 'dist'),
     publicPath: '/',
-    filename: 'refetch.js'
+    filename: 'refetch.js',
+    libraryTarget: 'umd'
   },
   plugins: [
     new webpack.optimize.OccurenceOrderPlugin(),
