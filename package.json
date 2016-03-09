@@ -1,7 +1,7 @@
 {
   "name": "refetch",
   "author": "lobos841@gmail.com",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "description": "remote data fetch, ajax, jsonp with cache, promises",
   "main": "./src/index.js",
   "scripts": {
@@ -40,6 +40,9 @@
     "blueimp-md5": "~1.1.1",
     "jquery-param": "^0.2.0",
     "pinkyswear": "~2.2.2"
+  },
+  "peerDependencies": {
+    "object-assign": "~4.0.1"
   },
   "devDependencies": {
     "babel": "~6.3.13",

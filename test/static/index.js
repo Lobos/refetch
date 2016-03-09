@@ -502,7 +502,7 @@
 				// (that header breaks in legacy browsers with CORS)
 				headers['X-Requested-With'] = 'XMLHttpRequest';
 			}
-			if (!options.cache && !('Cache-Control' in headers)) {
+			if (!crossOrigin && !options.cache && !('Cache-Control' in headers)) {
 				headers['Cache-Control'] = 'no-cache';
 			}
 
@@ -1677,6 +1677,10 @@
 
 	'use strict';
 
+	var _objectAssign = __webpack_require__(19);
+
+	var _objectAssign2 = _interopRequireDefault(_objectAssign);
+
 	var _ajax = __webpack_require__(3);
 
 	var _ajax2 = _interopRequireDefault(_ajax);
@@ -1692,9 +1696,12 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	var peer = null;
+	var defaultData = {};
+	var defaultOptions = {};
 
 	function fetch(method, url, data, options) {
-	  options = options || {};
+	  options = (0, _objectAssign2.default)({}, defaultOptions, options || {});
+	  data = (0, _objectAssign2.default)({}, defaultData, data || {});
 	  var key = (0, _util.generateKey)(method, url, data);
 	  var cache = options.cache;
 	  var promise = undefined;
@@ -1750,7 +1757,60 @@
 	  setPeer: function setPeer(fn) {
 	    peer = fn;
 	    return this;
+	  },
+
+	  setDefaultData: function setDefaultData(obj) {
+	    defaultData = (0, _objectAssign2.default)(defaultData, obj);
+	  },
+
+	  setDefaultOptions: function setDefaultOptions(obj) {
+	    defaultOptions = (0, _objectAssign2.default)(defaultOptions, obj);
 	  }
+	};
+
+/***/ },
+/* 19 */
+/***/ function(module, exports) {
+
+	/* eslint-disable no-unused-vars */
+	'use strict';
+
+	var hasOwnProperty = Object.prototype.hasOwnProperty;
+	var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+	function toObject(val) {
+		if (val === null || val === undefined) {
+			throw new TypeError('Object.assign cannot be called with null or undefined');
+		}
+
+		return Object(val);
+	}
+
+	module.exports = Object.assign || function (target, source) {
+		var from;
+		var to = toObject(target);
+		var symbols;
+
+		for (var s = 1; s < arguments.length; s++) {
+			from = Object(arguments[s]);
+
+			for (var key in from) {
+				if (hasOwnProperty.call(from, key)) {
+					to[key] = from[key];
+				}
+			}
+
+			if (Object.getOwnPropertySymbols) {
+				symbols = Object.getOwnPropertySymbols(from);
+				for (var i = 0; i < symbols.length; i++) {
+					if (propIsEnumerable.call(from, symbols[i])) {
+						to[symbols[i]] = from[symbols[i]];
+					}
+				}
+			}
+		}
+
+		return to;
 	};
 
 /***/ }

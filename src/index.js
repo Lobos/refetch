@@ -1,14 +1,18 @@
 'use strict';
 
+import objectAssign from 'object-assign';
 import ajax from './ajax';
 import jsonp from './jsonp';
 import { generateKey } from './util';
 import { getCache, setCache } from './cache';
 
 let peer = null;
+let defaultData = {};
+let defaultOptions = {};
 
 function fetch(method, url, data, options) {
-  options = options || {};
+  options = objectAssign({}, defaultOptions, options || {});
+  data = objectAssign({}, defaultData, data || {});
   let key = generateKey(method, url, data);
   let cache = options.cache;
   let promise;
@@ -64,5 +68,14 @@ module.exports = {
   setPeer: function (fn) {
     peer = fn;
     return this;
+  },
+
+  setDefaultData: function (obj) {
+    defaultData = objectAssign(defaultData, obj);
+  },
+
+  setDefaultOptions: function (obj) {
+    defaultOptions = objectAssign(defaultOptions, obj);
   }
 };
+
