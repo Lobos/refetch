@@ -1,9 +1,9 @@
 {
   "name": "refetch",
   "author": "lobos841@gmail.com",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "remote data fetch, ajax, jsonp with cache, promises",
-  "main": "./src/index.js",
+  "main": "./es5/index.js",
   "scripts": {
     "build": "./node_modules/.bin/webpack --config webpack.config.prod.js",
     "eslint": "./node_modules/.bin/eslint src/*",
