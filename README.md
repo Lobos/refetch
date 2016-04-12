@@ -43,6 +43,20 @@ refetch.post('hello.html', { name: 'world' })
     });
 ```
 
+# setDefaultOptions
+设置默认options
+```
+fetch.setDefaultOptions({ timeout: 30000, cache: 60 });
+fetch.get(...)
+```
+
+# setDefaultData
+设置默认数据，每次请求会自动提交
+```
+fetch.setDefaultData({ token: xxxxxxx });
+fetch.get(...)
+```
+
 # 默认数据处理
 提供了一个setPeer方法，用来预处理返回数据
 

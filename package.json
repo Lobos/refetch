@@ -1,7 +1,7 @@
 {
   "name": "refetch",
   "author": "lobos841@gmail.com",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "remote data fetch, ajax, jsonp with cache, promises",
   "main": "./es5/index.js",
   "scripts": {
@@ -38,7 +38,7 @@
     "esnext": true
   },
   "dependencies": {
-    "blueimp-md5": "~1.1.1",
+    "blueimp-md5": "^2.3.0",
     "jquery-param": "^0.2.0",
     "pinkyswear": "~2.2.2"
   },
