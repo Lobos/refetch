@@ -24,6 +24,14 @@ app.post('/post', (req, res) => {
   }
 });
 
+app.post('/post/two', (req, res) => {
+  if (req.body.a + req.body.b === 5) {
+    res.send({ success: true });
+  } else {
+    res.send({ success: false });
+  }
+});
+
 app.put('/put', (req, res) => {
   if (req.body.a === 1) {
     res.send({ success: true });

@@ -10,9 +10,9 @@ let peer = null;
 let defaultData = {};
 let defaultOptions = {};
 
-function fetch(method, url, data, options) {
-  options = objectAssign({}, defaultOptions, options || {});
-  data = objectAssign({}, defaultData, data || {});
+function fetch(method, url, data={}, options={}) {
+  options = objectAssign({}, defaultOptions, options);
+  data = objectAssign({}, defaultData, data);
   let key = generateKey(method, url, data);
   let cache = options.cache;
   let promise;
@@ -44,37 +44,55 @@ function fetch(method, url, data, options) {
   return promise;
 }
 
+function _fetch (method) {
+  return (...args) => fetch(method, ...args);
+}
+
+function create (preset = {}) {
+  const _ = (method) => (url, data, options) => {
+    data = objectAssign({}, preset.data, data);
+    options = objectAssign({}, preset.options, options)
+
+    let promise = fetch(method, url, data, options);
+    if (preset.promise) {
+      promise = preset.promise(promise);
+    }
+
+    return promise;
+  }
+
+  return ['get', 'post', 'put', 'delete', 'jsonp'].reduce((obj, k) => {
+    obj[k] = _(k);
+    return obj;
+  }, {});
+}
+
 module.exports = {
-  get: (url, data, options) => {
-    return fetch('get', url, data, options);
-  },
+  get: _fetch('get'),
 
-  post: (url, data, options) => {
-    return fetch('post', url, data, options);
-  },
+  post: _fetch('post'),
 
-  put: (url, data, options) => {
-    return fetch('put', url, data, options);
-  },
+  put: _fetch('put'),
 
-  'delete': (url, data, options) => {
-    return fetch('delete', url, data, options);
-  },
+  'delete': _fetch('delete'),
 
-  jsonp: (url, data, options) => {
-    return fetch('jsonp', url, data, options);
-  },
+  jsonp: _fetch('jsonp'),
+
+  create,
 
   setPeer: function (fn) {
+    console.warn('setPeer is deprecated, use create instead.')
     peer = fn;
     return this;
   },
 
   setDefaultData: function (obj) {
+    console.warn('setDefaultData is deprecated, use create instead.')
     defaultData = objectAssign(defaultData, obj);
   },
 
   setDefaultOptions: function (obj) {
+    console.warn('setDefaultOptions is deprecated, use create instead.')
     defaultOptions = objectAssign(defaultOptions, obj);
   }
 };

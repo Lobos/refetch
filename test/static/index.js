@@ -1649,6 +1649,71 @@
 	    });
 	  });
 
+	  it('fetch create 1', function (done) {
+	    _src2.default.create({
+	      data: { a: 1 },
+	      options: { dataType: 'json', responseType: 'json' }
+	    }).post('/post').then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('fetch create 2', function (done) {
+	    _src2.default.create({
+	      data: { a: 1 }
+	    }).post('/post', null, { dataType: 'json', responseType: 'json' }).then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('fetch create 3', function (done) {
+	    _src2.default.create({
+	      options: { dataType: 'json', responseType: 'json' }
+	    }).post('/post', { a: 1 }).then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('fetch create merge', function (done) {
+	    _src2.default.create({
+	      data: { a: 1, b: 2 },
+	      options: { dataType: 'json', responseType: 'text' }
+	    }).post('/post/two', { b: 4 }, { responseType: 'json' }).then(function (res) {
+	      res.success.should.be.true;
+	      done();
+	    });
+	  });
+
+	  it('fetch create promise', function (done) {
+	    var refetch = _src2.default.create({
+	      promise: function promise(f) {
+	        return f.then(function (res) {
+	          if (res.success) {
+	            return true;
+	          } else {
+	            return new Error(res.msg);
+	          }
+	        }).catch(function (res) {
+	          res.message.should.eql('timeout');
+	          done();
+	        });
+	      }
+	    });
+
+	    refetch.jsonp('/jsonp-data', { q: 1234 }).then(function (res) {
+	      res.message.should.eql("expect q === '123'");
+	    }).then(function () {
+	      return refetch.jsonp('/jsonp-data', { q: 123 });
+	    }).then(function (res) {
+	      res.should.be.true;
+	      return refetch.jsonp('/404', null, { timeout: 50 });
+	    });
+	  });
+
+	  // deprecated
 	  it('custom peer success', function (done) {
 	    _src2.default.setPeer(function (promise) {
 	      return promise.then(function (res) {
@@ -1702,9 +1767,12 @@
 	var defaultData = {};
 	var defaultOptions = {};
 
-	function fetch(method, url, data, options) {
-	  options = (0, _objectAssign2.default)({}, defaultOptions, options || {});
-	  data = (0, _objectAssign2.default)({}, defaultData, data || {});
+	function fetch(method, url) {
+	  var data = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+	  var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+
+	  options = (0, _objectAssign2.default)({}, defaultOptions, options);
+	  data = (0, _objectAssign2.default)({}, defaultData, data);
 	  var key = (0, _util.generateKey)(method, url, data);
 	  var cache = options.cache;
 	  var promise = undefined;
@@ -1736,37 +1804,65 @@
 	  return promise;
 	}
 
+	function _fetch(method) {
+	  return function () {
+	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	      args[_key] = arguments[_key];
+	    }
+
+	    return fetch.apply(undefined, [method].concat(args));
+	  };
+	}
+
+	function create() {
+	  var preset = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+	  var _ = function _(method) {
+	    return function (url, data, options) {
+	      data = (0, _objectAssign2.default)({}, preset.data, data);
+	      options = (0, _objectAssign2.default)({}, preset.options, options);
+
+	      var promise = fetch(method, url, data, options);
+	      if (preset.promise) {
+	        promise = preset.promise(promise);
+	      }
+
+	      return promise;
+	    };
+	  };
+
+	  return ['get', 'post', 'put', 'delete', 'jsonp'].reduce(function (obj, k) {
+	    obj[k] = _(k);
+	    return obj;
+	  }, {});
+	}
+
 	module.exports = {
-	  get: function get(url, data, options) {
-	    return fetch('get', url, data, options);
-	  },
+	  get: _fetch('get'),
 
-	  post: function post(url, data, options) {
-	    return fetch('post', url, data, options);
-	  },
+	  post: _fetch('post'),
 
-	  put: function put(url, data, options) {
-	    return fetch('put', url, data, options);
-	  },
+	  put: _fetch('put'),
 
-	  'delete': function _delete(url, data, options) {
-	    return fetch('delete', url, data, options);
-	  },
+	  'delete': _fetch('delete'),
 
-	  jsonp: function jsonp(url, data, options) {
-	    return fetch('jsonp', url, data, options);
-	  },
+	  jsonp: _fetch('jsonp'),
+
+	  create: create,
 
 	  setPeer: function setPeer(fn) {
+	    console.warn('setPeer is deprecated, use create instead.');
 	    peer = fn;
 	    return this;
 	  },
 
 	  setDefaultData: function setDefaultData(obj) {
+	    console.warn('setDefaultData is deprecated, use create instead.');
 	    defaultData = (0, _objectAssign2.default)(defaultData, obj);
 	  },
 
 	  setDefaultOptions: function setDefaultOptions(obj) {
+	    console.warn('setDefaultOptions is deprecated, use create instead.');
 	    defaultOptions = (0, _objectAssign2.default)(defaultOptions, obj);
 	  }
 	};

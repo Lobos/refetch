@@ -16,8 +16,8 @@ module.exports = function (url, data) {
   var promise = (0, _pinkyswear2.default)(function (pinky) {
     var id = options.name || '__cb' + (new Date().getTime().toString() + count++).substr(-10);
     var timeout = typeof options.timeout === 'number' ? options.timeout : 60000;
-    var script = undefined;
-    var timer = undefined;
+    var script = void 0;
+    var timer = void 0;
 
     function cleanup() {
       if (script.parentNode) {

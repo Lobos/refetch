@@ -43,21 +43,52 @@ refetch.post('hello.html', { name: 'world' })
     });
 ```
 
-# setDefaultOptions
+# create
+使用预设参数定制一个fetch，更加函数式的解决方案
+```
+const fetch = Refetch.create({
+    data: {},           // 数据，会被get等方法参数merge
+    options: {},        // 请求参数
+    promise: function   // 预处理方法
+})
+fetch[get|post|jsonp|put|delete](...)
+
+// =========================
+
+const fetch = Refetch.create({
+    data: { a: 1, b: 2 },
+    options: { dataType: 'json' },
+    promise: (f) => f.then((res, xhr) => {
+        if (res.success) {
+           return res.data;
+        } else {
+            // ... 处理异常
+            // 返回 new Error，cache将会忽略这个错误数据
+            return new Error(res.msg);
+        }
+    })
+});
+
+fetch.get('/xxx')  // get /xxx?a=1&b=2  dataType=json
+fetch.post('/xxx', { b: 3, c: 4 }, { dataType: 'text' }) // post /xxx a=1&b=3&c=4  dataType='text'
+```
+
+
+# setDefaultOptions(deprecated，建议使用create)
 设置默认options
 ```
 fetch.setDefaultOptions({ timeout: 30000, cache: 60 });
 fetch.get(...)
 ```
 
-# setDefaultData
+# setDefaultData(deprecated，建议使用create)
 设置默认数据，每次请求会自动提交
 ```
 fetch.setDefaultData({ token: xxxxxxx });
 fetch.get(...)
 ```
 
-# 默认数据处理
+# 默认数据处理(deprecated，建议使用create)
 提供了一个setPeer方法，用来预处理返回数据
 
 ```
