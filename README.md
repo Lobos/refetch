@@ -20,7 +20,8 @@ options:
 - responseType: method 为jsonp时无效。可选值 json (default), text, xml, arraybuffer, blob, document
 - headers: method 为jsonp时无效。object
 - timeout: 毫秒
-- cache: 缓存，单位秒，大于0时有效。使用localStorage做长期缓存，需要注意缓存数据大小。
+- cache: 缓存，单位秒，大于0时有效。
+- storage: bool，是否使用localStorage缓存，默认为false。
 - withCredentials: method 为jsonp时无效。是否支持跨域 default false
 - async: method 为jsonp时无效。是否同步 default true
 - delay: 延时处理，单位毫秒，默认为0。
@@ -74,21 +75,21 @@ fetch.post('/xxx', { b: 3, c: 4 }, { dataType: 'text' }) // post /xxx a=1&b=3&c=
 ```
 
 
-# setDefaultOptions(deprecated，建议使用create)
+# setDefaultOptions
 设置默认options
 ```
 fetch.setDefaultOptions({ timeout: 30000, cache: 60 });
 fetch.get(...)
 ```
 
-# setDefaultData(deprecated，建议使用create)
+# setDefaultData
 设置默认数据，每次请求会自动提交
 ```
 fetch.setDefaultData({ token: xxxxxxx });
 fetch.get(...)
 ```
 
-# 默认数据处理(deprecated，建议使用create)
+# 默认数据处理
 提供了一个setPeer方法，用来预处理返回数据
 
 ```

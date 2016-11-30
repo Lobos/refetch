@@ -1508,12 +1508,16 @@
 	var storage = window && window.localStorage ? window.localStorage : null;
 
 	var CACHE = {};
+	var STORAGE_ITEMS = {};
 
 	if (storage) {
 	  var item = storage.getItem(STORAGE_KEY);
 	  if (item) {
 	    try {
 	      CACHE = JSON.parse(item) || {};
+	      Object.keys(CACHE).map(function (k) {
+	        STORAGE_ITEMS[k] = CACHE[k];
+	      });
 	      clean();
 	    } catch (e) {
 	      console.warn(e);
@@ -1557,17 +1561,22 @@
 
 	function setCache(key, data) {
 	  var expire = arguments.length <= 2 || arguments[2] === undefined ? 3600 : arguments[2];
+	  var useStorage = arguments[3];
 
 	  if (data === null) {
 	    delete CACHE[key];
+	    delete STORAGE_ITEMS[key];
 	  } else {
 	    expire *= 1000;
 	    CACHE[key] = {
 	      data: data,
 	      expire: new Date().getTime() + expire
 	    };
+	    STORAGE_ITEMS[key] = CACHE[key];
 	  }
-	  save();
+	  if (useStorage) {
+	    save();
+	  }
 	}
 
 	// use single item handle expire
@@ -1576,14 +1585,14 @@
 	    return;
 	  }
 	  clean();
-	  storage.setItem(STORAGE_KEY, JSON.stringify(CACHE));
+	  storage.setItem(STORAGE_KEY, JSON.stringify(STORAGE_ITEMS));
 	}
 
 	function clean() {
 	  var expire = new Date().getTime();
-	  Object.keys(CACHE).forEach(function (key) {
-	    if (expire > (CACHE[key].expire || 0)) {
-	      delete CACHE[key];
+	  Object.keys(STORAGE_ITEMS).forEach(function (key) {
+	    if (expire > (STORAGE_ITEMS[key].expire || 0)) {
+	      delete STORAGE_ITEMS[key];
 	    }
 	  });
 	}
@@ -1649,7 +1658,7 @@
 	    });
 	  });
 
-	  it('fetch create 1', function (done) {
+	  it('fetch create with data and options', function (done) {
 	    _src2.default.create({
 	      data: { a: 1 },
 	      options: { dataType: 'json', responseType: 'json' }
@@ -1659,7 +1668,7 @@
 	    });
 	  });
 
-	  it('fetch create 2', function (done) {
+	  it('fetch create width data', function (done) {
 	    _src2.default.create({
 	      data: { a: 1 }
 	    }).post('/post', null, { dataType: 'json', responseType: 'json' }).then(function (res) {
@@ -1668,7 +1677,7 @@
 	    });
 	  });
 
-	  it('fetch create 3', function (done) {
+	  it('fetch create with options', function (done) {
 	    _src2.default.create({
 	      options: { dataType: 'json', responseType: 'json' }
 	    }).post('/post', { a: 1 }).then(function (res) {
@@ -1677,17 +1686,27 @@
 	    });
 	  });
 
-	  it('fetch create merge', function (done) {
-	    _src2.default.create({
+	  it('fetch create merge data and options', function (done) {
+	    var refetch = _src2.default.create({
 	      data: { a: 1, b: 2 },
 	      options: { dataType: 'json', responseType: 'text' }
-	    }).post('/post/two', { b: 4 }, { responseType: 'json' }).then(function (res) {
+	    });
+
+	    refetch.post('/post/two', {}, { responseType: 'json' }).then(function (res) {
+	      res.success.should.not.be.true;
+	    }).then(function () {
+	      return refetch.post('/post/two', { b: 4 });
+	    }).then(function (res) {
+	      (res === '{"success":true}').should.be.true;
+	    }).then(function () {
+	      return refetch.post('/post/two', { b: 4 }, { responseType: 'json' });
+	    }).then(function (res) {
 	      res.success.should.be.true;
 	      done();
 	    });
 	  });
 
-	  it('fetch create promise', function (done) {
+	  it('fetch create with promise', function (done) {
 	    var refetch = _src2.default.create({
 	      promise: function promise(f) {
 	        return f.then(function (res) {
@@ -1704,6 +1723,7 @@
 	    });
 
 	    refetch.jsonp('/jsonp-data', { q: 1234 }).then(function (res) {
+	      (res instanceof Error).should.be.true;
 	      res.message.should.eql("expect q === '123'");
 	    }).then(function () {
 	      return refetch.jsonp('/jsonp-data', { q: 123 });
@@ -1795,7 +1815,7 @@
 	  if (cache > 0) {
 	    promise.then(function (res) {
 	      if (!(res instanceof Error)) {
-	        (0, _cache.setCache)(key, res, cache);
+	        (0, _cache.setCache)(key, res, cache, options.storage);
 	      }
 	      return res;
 	    });
@@ -1851,18 +1871,15 @@
 	  create: create,
 
 	  setPeer: function setPeer(fn) {
-	    console.warn('setPeer is deprecated, use create instead.');
 	    peer = fn;
 	    return this;
 	  },
 
 	  setDefaultData: function setDefaultData(obj) {
-	    console.warn('setDefaultData is deprecated, use create instead.');
 	    defaultData = (0, _objectAssign2.default)(defaultData, obj);
 	  },
 
 	  setDefaultOptions: function setDefaultOptions(obj) {
-	    console.warn('setDefaultOptions is deprecated, use create instead.');
 	    defaultOptions = (0, _objectAssign2.default)(defaultOptions, obj);
 	  }
 	};

@@ -1,5 +1,3 @@
-'use strict';
-
 import objectAssign from 'object-assign';
 import ajax from './ajax';
 import jsonp from './jsonp';
@@ -35,7 +33,7 @@ function fetch(method, url, data={}, options={}) {
   if (cache > 0) {
     promise.then((res) => {
       if (!(res instanceof Error)) {
-        setCache(key, res, cache);
+        setCache(key, res, cache, options.storage);
       }
       return res;
     });
@@ -81,18 +79,15 @@ module.exports = {
   create,
 
   setPeer: function (fn) {
-    console.warn('setPeer is deprecated, use create instead.')
     peer = fn;
     return this;
   },
 
   setDefaultData: function (obj) {
-    console.warn('setDefaultData is deprecated, use create instead.')
     defaultData = objectAssign(defaultData, obj);
   },
 
   setDefaultOptions: function (obj) {
-    console.warn('setDefaultOptions is deprecated, use create instead.')
     defaultOptions = objectAssign(defaultOptions, obj);
   }
 };

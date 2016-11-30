@@ -49,60 +49,78 @@ describe('fetch', () => {
     });
   });
 
-  it('fetch create 1', (done) => {
+  it('fetch create with data and options', (done) => {
     fetch.create({
       data: { a: 1 },
       options: { dataType: 'json', responseType: 'json' }
-    }).post('/post').then(res => {
-      res.success.should.be.true;
-      done();
-    });
-  })
-
-  it('fetch create 2', (done) => {
-    fetch.create({
-      data: { a: 1 },
-    }).post('/post', null, { dataType: 'json', responseType: 'json' }).then(res => {
+    })
+    .post('/post').then(res => {
       res.success.should.be.true;
       done();
     })
   })
 
-  it('fetch create 3', (done) => {
+  it('fetch create width data', (done) => {
     fetch.create({
-      options: { dataType: 'json', responseType: 'json' }
-    }).post('/post', { a: 1 }).then(res => {
+      data: { a: 1 },
+    })
+    .post('/post', null, { dataType: 'json', responseType: 'json' }).then(res => {
       res.success.should.be.true;
       done();
     })
   })
 
-  it('fetch create merge', (done) => {
+  it('fetch create with options', (done) => {
     fetch.create({
+      options: { dataType: 'json', responseType: 'json' }
+    })
+    .post('/post', { a: 1 }).then(res => {
+      res.success.should.be.true;
+      done();
+    })
+  })
+
+  it('fetch create merge data and options', (done) => {
+    let refetch = fetch.create({
       data: { a: 1, b: 2 },
       options: { dataType: 'json', responseType: 'text' }
-    }).post('/post/two', { b: 4 }, { responseType: 'json'}).then(res => {
+    })
+
+    refetch.post('/post/two', {}, { responseType: 'json'}).then(res => {
+      res.success.should.not.be.true;
+    })
+    .then(() => {
+      return refetch.post('/post/two', { b: 4 });
+    })
+    .then((res) => {
+      (res === '{"success":true}').should.be.true;
+    })
+    .then(() => {
+      return refetch.post('/post/two', { b: 4 }, { responseType: 'json'});
+    })
+    .then(res => {
       res.success.should.be.true;
       done();
     })
   })
 
-  it('fetch create promise', (done) => {
+  it('fetch create with promise', (done) => {
     let refetch = fetch.create({
       promise: (f) => f.then((res) => {
-        if (res.success) {
-          return true;
-        } else {
-          return new Error(res.msg);
-        }
-      })
-      .catch((res) => {
-        res.message.should.eql('timeout');
-        done();
-      })
+          if (res.success) {
+            return true;
+          } else {
+            return new Error(res.msg);
+          }
+        })
+        .catch((res) => {
+          res.message.should.eql('timeout');
+          done();
+        })
     });
 
     refetch.jsonp('/jsonp-data', {q: 1234}).then(res => {
+      (res instanceof Error).should.be.true;
       res.message.should.eql("expect q === '123'");
     }).then(() => {
       return refetch.jsonp('/jsonp-data', {q: 123});
